@@ -1,0 +1,6 @@
+==========================================
+SLURM_JOB_ID = 411661
+SLURM_NODELIST = gnode47
+SLURM_JOB_GPUS = 
+==========================================
+python3: can't open file 'main.py': [Errno 2] No such file or directory

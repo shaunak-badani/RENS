@@ -1,0 +1,61 @@
+==========================================
+SLURM_JOB_ID = 411707
+SLURM_NODELIST = gnode47
+SLURM_JOB_GPUS = 
+==========================================
+sending incremental file list
+nvt_m2/T.txt
+         32,768   1%    0.00kB/s    0:00:00        2,450,012 100%   62.30MB/s    0:00:00 (xfr#1, to-chk=4/6)
+nvt_m2/ke.txt
+         32,768   1%  864.86kB/s    0:00:02        2,421,850 100%   30.80MB/s    0:00:00 (xfr#2, to-chk=3/6)
+nvt_m2/p.txt
+         32,768   0%  421.05kB/s    0:00:46       19,695,427 100%   46.72MB/s    0:00:00 (xfr#3, to-chk=2/6)
+nvt_m2/pe.txt
+         32,768   1%   79.60kB/s    0:00:30        2,428,360 100%    5.06MB/s    0:00:00 (xfr#4, to-chk=1/6)
+nvt_m2/v.txt
+         32,768   0%   69.72kB/s    0:04:45       19,954,140 100%   24.12MB/s    0:00:00 (xfr#5, to-chk=0/6)
+receiving incremental file list
+nvt_m2/T.txt
+              0   0%    0.00kB/s    0:00:00        2,450,012 100%   34.87MB/s    0:00:00 (xfr#1, to-chk=4/6)
+nvt_m2/ke.txt
+              0   0%    0.00kB/s    0:00:00        2,421,850 100%   19.41MB/s    0:00:00 (xfr#2, to-chk=3/6)
+nvt_m2/p.txt
+              0   0%    0.00kB/s    0:00:00       19,695,427 100%   37.42MB/s    0:00:00 (xfr#3, to-chk=2/6)
+nvt_m2/pe.txt
+              0   0%    0.00kB/s    0:00:00        2,428,360 100%    4.24MB/s    0:00:00 (xfr#4, to-chk=1/6)
+nvt_m2/v.txt
+              0   0%    0.00kB/s    0:00:00       19,954,140 100%   21.43MB/s    0:00:00 (xfr#5, to-chk=0/6)
+Files sent to share1 
+Done. Analyzing .... 
+
+Analysis Done. 
+
+sending incremental file list
+nvt_0.3/
+nvt_0.3/T.txt
+         32,768   1%    0.00kB/s    0:00:00        2,526,940 100%  237.86MB/s    0:00:00 (xfr#1, to-chk=4/6)
+nvt_0.3/ke.txt
+         32,768   1%    2.84MB/s    0:00:00        2,464,004 100%   57.31MB/s    0:00:00 (xfr#2, to-chk=3/6)
+nvt_0.3/p.txt
+         32,768   0%  780.49kB/s    0:00:24       19,373,337 100%   81.39MB/s    0:00:00 (xfr#3, to-chk=2/6)
+nvt_0.3/pe.txt
+         32,768   1%  140.35kB/s    0:00:16        2,416,628 100%    8.35MB/s    0:00:00 (xfr#4, to-chk=1/6)
+nvt_0.3/v.txt
+         32,768   0%  115.94kB/s    0:02:52       20,075,565 100%   44.52MB/s    0:00:00 (xfr#5, to-chk=0/6)
+receiving incremental file list
+nvt_0.3/
+nvt_0.3/T.txt
+              0   0%    0.00kB/s    0:00:00        2,526,940 100%   89.25MB/s    0:00:00 (xfr#1, to-chk=4/6)
+nvt_0.3/ke.txt
+              0   0%    0.00kB/s    0:00:00        2,464,004 100%   47.00MB/s    0:00:00 (xfr#2, to-chk=3/6)
+nvt_0.3/p.txt
+              0   0%    0.00kB/s    0:00:00       19,373,337 100%   85.14MB/s    0:00:00 (xfr#3, to-chk=2/6)
+nvt_0.3/pe.txt
+              0   0%    0.00kB/s    0:00:00        2,416,628 100%    9.68MB/s    0:00:00 (xfr#4, to-chk=1/6)
+nvt_0.3/v.txt
+              0   0%    0.00kB/s    0:00:00       20,075,565 100%   45.58MB/s    0:00:00 (xfr#5, to-chk=0/6)
+Files sent to share1 
+Done. Analyzing .... 
+
+Analysis Done. 
+

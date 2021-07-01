@@ -1,2 +1,5 @@
 analysis_plots/
 *.ipynb
+*.out
+src/*.pyc
+__pycache__

@@ -1,11 +1,12 @@
 #!/bin/bash
 #SBATCH -A research
 #SBATCH --qos=medium
-#SBATCH -n 2
-#SBATCH --gres=gpu:0
+#SBATCH -n 8
+#SBATCH --gres=gpu:1
 #SBATCH --mem-per-cpu=2048
 #SBATCH --time=2-00:00:00
 #SBATCH --mail-type=NONE
+#SBATCH --output=1d_slurm.out
 
 # >>> conda initialize >>>
 # !! Contents within this block are managed by 'conda init' !!
@@ -23,4 +24,4 @@ unset __conda_setup
 # <<< conda initialize <<<
 
 conda activate MD
-python3 longer_nvt_corrected.py
+python3 nvt_new.py

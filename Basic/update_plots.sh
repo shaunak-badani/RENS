@@ -1,8 +1,8 @@
 #!/bin/bash
 #SBATCH -A research
 #SBATCH --qos=medium
-#SBATCH -n 2
-#SBATCH --gres=gpu:0
+#SBATCH -n 20
+#SBATCH --gres=gpu:2
 #SBATCH --mem-per-cpu=2048
 #SBATCH --time=2-00:00:00
 #SBATCH --mail-type=NONE
@@ -23,8 +23,4 @@ unset __conda_setup
 # <<< conda initialize <<<
 
 conda activate MD
-
-mpiexec -n 2 python rem.py
-
-SHARE_PATH="/share1/shaunak/1D_system/REMD"
-rsync -aPs --rsync-path="mkdir -p $SHARE_PATH && rsync" "/scratch/shaunak/1D_Run" ada:$SHARE_PATH
+python3 update_plots.py

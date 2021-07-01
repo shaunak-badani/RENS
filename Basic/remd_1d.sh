@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH -A research
 #SBATCH --qos=medium
-#SBATCH -n 2
+#SBATCH -n 4
 #SBATCH --gres=gpu:0
 #SBATCH --mem-per-cpu=2048
 #SBATCH --time=2-00:00:00
@@ -23,6 +23,4 @@ unset __conda_setup
 # <<< conda initialize <<<
 
 conda activate MD
-
-python3 main.py
-python3 Analysis.py
+mpiexec -n 4 python main_remd.py

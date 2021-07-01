@@ -7,22 +7,16 @@ from src.analysis import Analysis
 from src.nose_hoover import NoseHoover
 
 import numpy as np
-
-num_particles = 10
-num_steps = int(1e7)
-reduced_temperature = 0.3
-run_name = 'longer_nvt_corrected'
+import os
 
 
-if __name__ == "__main__":
-    cfg = Config(num_particles, num_steps, reduced_temperature)
+def run_nve(cfg):
     sys = System(cfg)
-    file_io = FileOperations(cfg, run_name)
+    file_io = FileOperations(cfg)
     stepper = VelocityVerletIntegrator()
-    nht = NoseHoover(stepper.dt, cfg, 2)
-    for step_no in range(num_steps):
+
+    for step_no in range(cfg.num_steps):
         x, v = stepper.velocity_verlet_step(sys.x, sys.v, sys.m)
-        v = nht.step(sys.m, sys.v)
         pe = sys.U(x)
         sys.set_x(x)
         sys.set_v(v)
@@ -30,9 +24,22 @@ if __name__ == "__main__":
         temp = sys.instantaneous_T(v)
         file_io.write(x, v, ke, pe, temp, step_no)
     del(file_io)
-    print("Done. Analyzing .... \n")
-    an = Analysis(cfg, run_name)
-    an.plot_energy()
-    an.plot_temperature()
-    print("Analysis Done. \n")
+
+def run_nvt(cfg):
+    sys = System(cfg)
+    file_io = FileOperations(cfg)
+    stepper = VelocityVerletIntegrator()
+    nht = NoseHoover(stepper.dt, cfg)
+
+    for step_no in range(cfg.num_steps):
+        v = nht.step(sys.m, sys.v)
+        x, v = stepper.velocity_verlet_step(sys.x, v, sys.m)
+        v = nht.step(sys.m, v)
+        pe = sys.U(x)
+        sys.set_x(x)
+        sys.set_v(v)
+        ke = sys.K(v)
+        temp = sys.instantaneous_T(v)
+        file_io.write(x, v, ke, pe, temp, step_no)
+    del(file_io)
         

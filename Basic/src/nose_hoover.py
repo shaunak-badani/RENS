@@ -11,14 +11,9 @@ class NoseHoover():
         self.vxi = np.zeros(M)
         self.xi = np.zeros(M)
         self.dt = dt
-        # self.T = cfg.temperature
-        self.T = cfg.reduced_temperature
+        self.T = cfg.temperature
         self.num_particles = cfg.num_particles
-        # Q_p1 = (self.num_particles * Units.kB * self.T) / (freq**2)
-        # Q_pi = (Units.kB * self.T) / (freq**2)
-
-        # self.Q = np.full(M, Q_pi)
-        # self.Q[0] = Q_p1
+        
         self.Q = np.full(M, 0.1)
 
 

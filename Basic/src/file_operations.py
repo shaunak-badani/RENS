@@ -2,13 +2,13 @@ import os
 
 class FileOperations:
 
-    def __init__(self, cfg, run_name):
+    def __init__(self, cfg):
         file_dir = "/scratch/shaunak/default/"
         file_dir = cfg.files       
         
         # Constructing Folders
-        folder_path = os.path.join(file_dir, run_name)
-        self.run_name = run_name
+        folder_path = os.path.join(file_dir, cfg.run_name)
+        self.run_name = cfg.run_name
         self.folder_path = folder_path
         self.share_dir = cfg.share_dir
         os.system("mkdir -p {}".format(folder_path))

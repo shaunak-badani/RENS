@@ -1,17 +1,45 @@
 from .units import Units
+import json
+import os
 
 class Config:
     
-    __multiplier = (Units.epsilon / Units.kB)
-    # num_particles = 10
-    # num_steps = int(1e5)
-    # reduced_temperature = 2.0
     files = '/scratch/shaunak/1D_Run'
     share_dir = '/share1/shaunak/1D_Run/'
 
-    def __init__(self, num_particles, num_steps, reduced_temperature):
-        self.num_particles = num_particles
-        self.num_steps = num_steps
-        self.reduced_temperature = reduced_temperature
-        self.temperature = reduced_temperature * self.__multiplier
+    num_particles = 1
+    num_steps = 10
+    temperature = 2.0
+    run_name = 'default'
+    run_type = 'nve'
+    analyze = True
 
+    def import_from_file(self, file_name):
+        try:
+            with open(file_name) as json_data_file:
+                data = json.load(json_data_file)
+            if 'num_particles' in data:
+                self.num_particles = data['num_particles']
+
+            if 'num_steps' in data:
+                self.num_steps = data['num_steps']
+
+            if 'share_dir' in data:
+                self.share_dir = data['share_dir']
+
+            if 'temperature' in data:
+                self.temperature = data['temperature']
+
+            if 'run_type' in data:
+                self.run_type = data['run_type']
+
+            if 'analyze' in data:
+                self.analyze = data['analyze']
+
+            self.run_name = os.path.splitext(file_name)[0]
+
+        except FileNotFoundError:
+            print("No such file {}".format(file_name))
+
+        except json.decoder.JSONDecodeError:
+            print("Bad JSON file")

@@ -14,8 +14,7 @@ class System:
 
     def __init_velocities(self, cfg):
         N = cfg.num_particles
-        # T = cfg.temperature
-        T = cfg.reduced_temperature
+        T = cfg.temperature
         self.T = T
         self.N = N
         v = np.random.random(size = (N, 1)) - 0.5

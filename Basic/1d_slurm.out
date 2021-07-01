@@ -1,41 +1,0 @@
-==========================================
-SLURM_JOB_ID = 425401
-SLURM_NODELIST = gnode44
-SLURM_JOB_GPUS = 1
-==========================================
-sending incremental file list
-nvt_new/T.txt
-         32,768  13%    0.00kB/s    0:00:00          235,440 100%  193.28MB/s    0:00:00 (xfr#1, to-chk=6/8)
-nvt_new/ke.txt
-         32,768  14%   15.62MB/s    0:00:00          232,213 100%  110.73MB/s    0:00:00 (xfr#2, to-chk=5/8)
-nvt_new/p.txt
-         32,768   1%   10.42MB/s    0:00:00        2,035,166 100%  149.30MB/s    0:00:00 (xfr#3, to-chk=4/8)
-nvt_new/pe.txt
-         32,768  14%    2.08MB/s    0:00:00          233,523 100%   13.92MB/s    0:00:00 (xfr#4, to-chk=3/8)
-nvt_new/v.txt
-         32,768   1%    1.64MB/s    0:00:01        1,997,310 100%   65.68MB/s    0:00:00 (xfr#5, to-chk=2/8)
-nvt_new/vxi.txt
-         32,768  13%    1.04MB/s    0:00:00          239,251 100%    6.34MB/s    0:00:00 (xfr#6, to-chk=1/8)
-nvt_new/xi.txt
-         32,768  13%  864.86kB/s    0:00:00          239,803 100%    5.72MB/s    0:00:00 (xfr#7, to-chk=0/8)
-receiving incremental file list
-nvt_new/
-nvt_new/T.txt
-              0   0%    0.00kB/s    0:00:00          235,440 100%   74.84MB/s    0:00:00 (xfr#1, to-chk=6/8)
-nvt_new/ke.txt
-              0   0%    0.00kB/s    0:00:00          232,213 100%   27.68MB/s    0:00:00 (xfr#2, to-chk=5/8)
-nvt_new/p.txt
-              0   0%    0.00kB/s    0:00:00        2,035,166 100%   57.08MB/s    0:00:00 (xfr#3, to-chk=4/8)
-nvt_new/pe.txt
-              0   0%    0.00kB/s    0:00:00          233,523 100%    5.71MB/s    0:00:00 (xfr#4, to-chk=3/8)
-nvt_new/v.txt
-              0   0%    0.00kB/s    0:00:00        1,997,310 100%   31.23MB/s    0:00:00 (xfr#5, to-chk=2/8)
-nvt_new/vxi.txt
-              0   0%    0.00kB/s    0:00:00          239,251 100%    3.57MB/s    0:00:00 (xfr#6, to-chk=1/8)
-nvt_new/xi.txt
-              0   0%    0.00kB/s    0:00:00          239,803 100%    3.47MB/s    0:00:00 (xfr#7, to-chk=0/8)
-Files sent to share1 
-Done. Analyzing .... 
-
-Analysis Done. 
-

@@ -1,4 +1,5 @@
 class Units:
-    kB = 0.0083144621   
-    epsilon = 0.996 
+    # kB = 0.0083144621   
+    kB = 1
+    epsilon = 119.8 
 

@@ -14,7 +14,8 @@ class System:
 
     def __init_velocities(self, cfg):
         N = cfg.num_particles
-        T = cfg.temperature
+        # T = cfg.temperature
+        T = cfg.reduced_temperature
         self.T = T
         self.N = N
         v = np.random.random(size = (N, 1)) - 0.5
@@ -46,8 +47,11 @@ class System:
 
     @staticmethod
     def U(x):
-        U_x = np.array(list(map(System.__pot_energy, x)))
-        return U_x.sum(axis = 0).item()
+        reduced_x = x.squeeze()
+        pot = 0
+        for i in reduced_x:
+            pot += System.__pot_energy(i)
+        return pot
 
     
     @staticmethod
@@ -85,8 +89,8 @@ class System:
         N = self.N
         sumv2 = np.sum(self.m * v**2)
         t = sumv2 / (N * Units.kB)
-        r_t = (Units.kB / Units.epsilon) * t
-        return r_t
+        # r_t = (Units.kB / Units.epsilon) * t
+        return t
 
     # Setters
     def set_x(self, x):

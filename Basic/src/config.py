@@ -13,6 +13,7 @@ class Config:
     run_name = 'default'
     run_type = 'nve'
     analyze = True
+    ada = False
 
     def import_from_file(self, file_name):
         try:
@@ -35,6 +36,9 @@ class Config:
 
             if 'analyze' in data:
                 self.analyze = data['analyze']
+            
+            if 'ada' in data:
+                self.ada = data['ada']
 
             self.run_name = os.path.splitext(file_name)[0]
 

@@ -3,14 +3,17 @@ import os
 class FileOperations:
 
     def __init__(self, cfg):
-        file_dir = "/scratch/shaunak/default/"
-        file_dir = cfg.files       
+        file_dir = "../../runs"
+        if cfg.ada:
+            file_dir = "/scratch/shaunak/default/"
+        # file_dir = cfg.files       
         
         # Constructing Folders
         folder_path = os.path.join(file_dir, cfg.run_name)
         self.run_name = cfg.run_name
         self.folder_path = folder_path
         self.share_dir = cfg.share_dir
+        self.ada = cfg.ada
         os.system("mkdir -p {}".format(folder_path))
 
         # Defining File objects
@@ -55,6 +58,7 @@ class FileOperations:
         self.pe_file.close()
         self.T_file.close()
         share_dir = self.share_dir
-        os.system('rsync -aPs --rsync-path="mkdir -p {} \
-         && rsync" {} ada:{}'.format(share_dir, self.folder_path, share_dir))
-        print("Files sent to share1 ")
+        if self.ada:
+            os.system('rsync -aPs --rsync-path="mkdir -p {} \
+            && rsync" {} ada:{}'.format(share_dir, self.folder_path, share_dir))
+            print("Files sent to share1 ")

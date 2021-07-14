@@ -8,8 +8,7 @@ from src.config import Config
 from src.file_operations import FileOperations
 from src.integrator import VelocityVerletIntegrator
 from src.analysis import Analysis
-from ensembles import run_nve
-from ensembles import run_nvt
+from ensembles import Ensemble
 
 
 parser = argparse.ArgumentParser()
@@ -23,12 +22,8 @@ if args.config:
 
 if __name__ == "__main__":
 
-    if cfg.run_type == 'nve':
-        run_nve(cfg)
-
-    if cfg.run_type == 'nvt':
-        run_nvt(cfg)
-    
+    ensemble = Ensemble(cfg)
+    ensemble.run_simulation()
     
     if cfg.analyze:
         print("Analyzing .... \n")

@@ -46,7 +46,7 @@ class System:
 
     @staticmethod
     def U(x):
-        reduced_x = x.squeeze()
+        reduced_x = x.flatten()
         pot = 0
         for i in reduced_x:
             pot += System.__pot_energy(i)
@@ -73,7 +73,8 @@ class System:
     @staticmethod
     def F(x):
         forces = []
-        reduced_x = x.squeeze()
+        reduced_x = x.flatten()
+        
         for particle in reduced_x:
             f = System.__force(particle)
             forces.append(f)

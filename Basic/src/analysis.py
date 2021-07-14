@@ -5,10 +5,12 @@ import numpy as np
 
 class Analysis:
     def __init__(self, cfg, run_name):
-        ada_path = os.path.join(cfg.share_dir, run_name)
-        file_loc = "/scratch/shaunak/1D_Run/analysis"
-        os.system("mkdir -p {}".format(file_loc))
-        os.system("rsync -aPs ada:{} {}".format(ada_path, file_loc))
+        file_loc = "../../runs"
+        if cfg.ada:
+            ada_path = os.path.join(cfg.share_dir, run_name)
+            file_loc = "/scratch/shaunak/1D_Run/analysis"
+            os.system("mkdir -p {}".format(file_loc))
+            os.system("rsync -aPs ada:{} {}".format(ada_path, file_loc))
         self.file_path = os.path.join(file_loc, run_name)
 
         self.images_path = os.path.join(os.getcwd(), "analysis_plots", run_name)

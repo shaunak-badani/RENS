@@ -1,4 +1,5 @@
 from .units import Units
+from mpi4py import MPI
 import json
 import os
 
@@ -14,6 +15,8 @@ class Config:
     run_type = 'nve'
     analyze = True
     ada = False
+    system = '1D_Leach'
+    primary_replica = 0
 
     def import_from_file(self, file_name):
         try:
@@ -29,7 +32,18 @@ class Config:
                 self.share_dir = data['share_dir']
 
             if 'temperature' in data:
-                self.temperature = data['temperature']
+
+                if(isinstance(data['temperature'], list)):
+                    self.temperatures = data['temperature']
+                    comm = MPI.COMM_WORLD
+                    rank = comm.Get_rank()
+                    if(rank >= len(data['temperature'])):
+                        print("Run the program with number of processes equal to number of replicas! Idjot")
+                    else:
+                        self.temperature = data['temperature'][rank]
+                else:
+                    self.temperature = data['temperature']
+
 
             if 'run_type' in data:
                 self.run_type = data['run_type']
@@ -39,8 +53,20 @@ class Config:
             
             if 'ada' in data:
                 self.ada = data['ada']
+            
+            if 'system' in data:
+                self.system = data['system']
+
+            if 'rst' in data:
+                self.rst = data['rst']
 
             self.run_name = os.path.splitext(file_name)[0]
+
+            if not self.ada:
+                self.files = "../../runs"
+            
+            if 'primary_replica' in data:
+                self.primary_replica = data['primary_replica']
 
         except FileNotFoundError:
             print("No such file {}".format(file_name))

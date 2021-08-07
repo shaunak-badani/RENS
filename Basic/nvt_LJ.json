@@ -1,8 +1,8 @@
 {
     "num_particles": 10,
     "num_steps": 10000,
-    "temperature": 2.0,
+    "temperature": 1.0,
     "run_type": "nvt",
     "analyze" : true,
-    "system" : "1D_Leach"
+    "system" : "LJ"
 }

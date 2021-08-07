@@ -1,0 +1,8 @@
+{
+    "num_particles": 1,
+    "num_steps": 5000,
+    "temperature": 0.1,
+    "run_type": "minimize",
+    "analyze" : true,
+    "system" : "1D_Leach"
+}

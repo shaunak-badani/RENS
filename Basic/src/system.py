@@ -3,6 +3,7 @@ from .units import Units
 import numpy as np
 import random
 import math
+import pandas as pd
 
 class System:
    
@@ -21,14 +22,23 @@ class System:
         sumv2 = np.sum(self.m * v**2)
         fs = np.sqrt((N * Units.kB * T) / sumv2)
         self.v = v * fs
+        
 
     def __init__(self, cfg):
         N = cfg.num_particles
-        self.x = np.random.normal(0, 0.5, size = (N, 1))
-        self.m = np.ones((N, 1))
+        self.x = np.random.normal(0, 3, size = (N, 1))
+        self.m = np.random.randint(5, 10, size = (N, 1))
         self.__init_velocities(cfg)
 
-    def __pot_energy(x):
+        if hasattr(cfg, 'rst'):
+            df = pd.read_csv(cfg.rst, sep = ' ')
+            self.x = df['x'].to_numpy().reshape(-1, 1)
+            N = self.x.shape[0]
+            self.v = df['v'].to_numpy().reshape(-1, 1)
+            self.m = df['m'].to_numpy().reshape(-1, 1)
+            self.N = N
+            cfg.num_particles = N
+    def pot_energy(self, x):
         if x < -1.25:
             return (4 * (np.pi**2)) * (x + 1.25)**2
         
@@ -44,12 +54,11 @@ class System:
         # if x >= 1.75:
         return 64 * ((x - 1.75) ** 2)
 
-    @staticmethod
-    def U(x):
+    def U(self, x):
         reduced_x = x.flatten()
         pot = 0
         for i in reduced_x:
-            pot += System.__pot_energy(i)
+            pot += self.pot_energy(i)
         return pot
 
     

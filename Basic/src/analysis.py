@@ -1,6 +1,10 @@
 import os
 import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
+
+from scipy import integrate
+from .units import Units
 
 
 class Analysis:
@@ -11,22 +15,30 @@ class Analysis:
             file_loc = "/scratch/shaunak/1D_Run/analysis"
             os.system("mkdir -p {}".format(file_loc))
             os.system("rsync -aPs ada:{} {}".format(ada_path, file_loc))
+        # if cfg.run_type == "remd":
+        #     primary_replica = cfg.primary_replica
+        #     self.file_path = os.path.join(file_loc, str(primary_replica))
         self.file_path = os.path.join(file_loc, run_name)
 
         self.images_path = os.path.join(os.getcwd(), "analysis_plots", run_name)
         os.system("mkdir -p {}".format(self.images_path))
 
-    def plot_energy(self):
+    def __get_scalars(self):
         file_path = self.file_path
-        pe_file = os.path.join(file_path, "pe.txt")
-        ke_file = os.path.join(file_path, "ke.txt")
-        pe = np.loadtxt(pe_file)
-        ke = np.loadtxt(ke_file)
+        scalar_file = os.path.join(file_path, "scalars.txt")
+        scalars = pd.read_csv(scalar_file, sep = ' ')
+        return scalars
 
-        pe_vals = pe[:, 1]
-        ke_vals = ke[:, 1]
-        tot_energy = pe_vals + ke_vals
-        steps = pe[:, 0]
+    def plot_energy(self):
+        scalars = self.__get_scalars()
+
+        pe = scalars["PE"].to_numpy()
+        ke = scalars["KE"].to_numpy()
+        pe_vals = pe
+        ke_vals = ke
+
+        tot_energy = scalars["TE"]
+        steps = scalars["Step"]
         
         energies_path = os.path.join(self.images_path, "energies")
         os.system('mkdir -p {}'.format(energies_path))
@@ -94,13 +106,12 @@ class Analysis:
 
     def plot_temperature(self, temp):
         fig = plt.figure(figsize = (21, 7))
-        file_path = self.file_path
-        T_file = os.path.join(file_path, "T.txt")
-        T = np.loadtxt(T_file)
+        scalars = self.__get_scalars()
+        T = scalars["T"].to_numpy()
 
         
-        steps = T[:, 0]
-        plt.plot(steps, T[:, 1], label = "Temperature", linewidth = 3, color = 'maroon', alpha = 0.5)
+        steps = scalars["Step"].to_numpy()
+        plt.plot(steps, T, label = "Temperature", linewidth = 3, color = 'maroon', alpha = 0.5)
         plt.axhline(y = temp, linewidth = 3, color = 'red')
 
         plt.yticks(fontsize = 22.5)
@@ -263,16 +274,20 @@ class Analysis:
 
     def plot_hprime(self):
         file_path = self.file_path
-        h_prime_path = os.path.join(file_path, "sys_surr_energy.txt")
-        h_prime = np.loadtxt(h_prime_path)
+        surr_path = os.path.join(file_path, "surr_file.txt")
+        if not os.path.isfile(surr_path):
+            print("No surrounding energy has been noted during the simulation!\n")
+            return
+        surr_energies = pd.read_csv(surr_path, sep = ' ')
+        scalars = self.__get_scalars()
+        h_prime = scalars["TE"].to_numpy() + surr_energies["Surrounding_Energy"].to_numpy()
         
         
         fig = plt.figure(figsize = (21, 7))
-        steps = h_prime[:, 0]
-        h_prime = h_prime[:, 1]
+        steps = surr_energies["Step"].to_numpy()
         plt.axhline(y = h_prime.mean(), color = 'red')
-        plt.axhline(y = h_prime.mean() + 0.2, color = 'red')
-        plt.axhline(y = h_prime.mean() - 0.2, color = 'red')
+        # plt.axhline(y = h_prime.mean() + 0.2, color = 'red')
+        # plt.axhline(y = h_prime.mean() - 0.2, color = 'red')
         plt.plot( steps, h_prime, linewidth = 6, color = 'blue', alpha = 0.5, label = "H' ")
         
         
@@ -285,6 +300,69 @@ class Analysis:
         ylabel.set_rotation(0)
         prime_path = os.path.join(self.images_path, "H_prime.png")
         plt.savefig(prime_path)
+        plt.close()
+
+    def velocity_distribution(self):
+        self.load_positions_and_velocities()
+        vel_bins = np.arange(-5, 5, 0.5)
+        vel_count = np.zeros_like(vel_bins)
+        particle_index = 0
+        for v in self.vel[:, particle_index]:
+            ind = np.argmin(np.abs(vel_bins - v))
+            vel_count[ind] += 1
+        plt.plot(vel_bins, vel_count)
+        plt.scatter(vel_bins, vel_count)
+        for i in vel_bins:
+            
+            plt.axvline(x = i, linewidth = 0.1)
+        vel_dist = os.path.join(self.images_path, "vel_dist.png")
+        plt.savefig(vel_dist)
+         
+        plt.close()
+    
+    def plot_probs(self, pot_energy, temperature, primary_replica):
+        if not hasattr(self, 'bin_boundaries'):
+            print("First Initialize bin boundaries!")
+            return
+        bin_boundaries = self.bin_boundaries
+        boltzmann_integrand = np.empty(len(bin_boundaries) - 1)
+        beta = 1 / (Units.kB * temperature)
+        wells = np.arange(1, len(bin_boundaries))
+        for i in wells:
+            boltzmann_integrand[i - 1] = integrate.quad(lambda x: np.exp(-beta * pot_energy(x)), bin_boundaries[i-1], bin_boundaries[i])[0]
+        boltzmann_integrand /= boltzmann_integrand.sum()
+
+        well_counts = np.zeros_like(wells, dtype="float")
+
+        root_dir = self.file_path
+        self.file_path = os.path.join(self.file_path, str(primary_replica))
+        self.load_positions_and_velocities()
+        self.file_path = root_dir
+        particle_no = 0
+
+        pos = self.pos
+        for i in wells:
+            lower_bound = bin_boundaries[i - 1]
+            upper_bound = bin_boundaries[i]
+            lies_in_well = np.logical_and(pos[:, particle_no] >= lower_bound, \
+                                    pos[:, particle_no] < upper_bound)
+            well_counts[i-1] = np.count_nonzero(lies_in_well)
+        
+        well_counts /= well_counts.sum()
+        colors = ['r', 'g', 'b', 'm']
+
+        for index, line in enumerate(boltzmann_integrand):
+            plt.axhline(y = line, linewidth = 3, label='#{}'.format(index + 1), color = colors[index])
+        plt.scatter(0, well_counts[0], color=colors[0])
+        plt.scatter(0, well_counts[1], color=colors[1])
+        plt.scatter(0, well_counts[2], color=colors[2])
+        plt.scatter(0, well_counts[3], color=colors[3])
+        plt.xlabel("Run number")
+        # plt.ylim([0.2, 0.3])
+        plt.ylabel("Probability of particle in well")
+
+        im_path = os.path.join(self.images_path, "boltzmann.png")
+        plt.savefig(im_path)
         plt.close()
 
 

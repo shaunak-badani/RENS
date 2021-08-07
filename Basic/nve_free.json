@@ -1,0 +1,8 @@
+{
+    "num_particles": 1,
+    "num_steps": 10,
+    "temperature": 2.0,
+    "run_type": "nve",
+    "analyze" : true,
+    "system" : "free_particle"
+}

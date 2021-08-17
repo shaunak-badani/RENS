@@ -41,9 +41,9 @@ class LJ(System):
         self.v = vel
         
 
-    def __init__(self, cfg, rc = 6):
-        super().__init__(cfg)
-        N = cfg.num_particles
+    def __init__(self, rc = 6):
+        super().__init__()
+        N = Config.num_particles
         self.rc = 6
         V = 1000
         bx = by = bz = V**(1.0 / 3)

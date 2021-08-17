@@ -4,6 +4,7 @@ import numpy as np
 import random
 import math
 import pandas as pd
+from .config import Config
 
 class System:
    
@@ -13,24 +14,23 @@ class System:
     RGAS = BOLTZMANN*AVOGADRO
     BOLTZ = (RGAS/KILO)  
 
-    def __init_velocities(self, cfg):
-        N = cfg.num_particles
-        T = cfg.temperature
-        self.T = T
-        self.N = N
+    def __init_velocities(self):
+        N = Config.num_particles
+        T = Config.T
         v = np.random.random(size = (N, 1)) - 0.5
         sumv2 = np.sum(self.m * v**2)
         fs = np.sqrt((N * Units.kB * T) / sumv2)
-        self.v = v * fs
+        self.v = v * fs 
         
 
-    def __init__(self, cfg):
-        N = cfg.num_particles
-        self.x = np.random.normal(0, 3, size = (N, 1))
-        self.m = np.random.randint(5, 10, size = (N, 1))
-        self.__init_velocities(cfg)
+    def __init__(self):
+        N = Config.num_particles
+        self.x = np.random.normal(0, 1.0, size = (N, 1))
+        self.m = np.full(N, 1) # kg / mol
+        self.__init_velocities()
 
-        if hasattr(cfg, 'rst'):
+
+        if Config.rst:
             df = pd.read_csv(cfg.rst, sep = ' ')
             self.x = df['x'].to_numpy().reshape(-1, 1)
             N = self.x.shape[0]
@@ -38,6 +38,7 @@ class System:
             self.m = df['m'].to_numpy().reshape(-1, 1)
             self.N = N
             cfg.num_particles = N
+        
     def pot_energy(self, x):
         if x < -1.25:
             return (4 * (np.pi**2)) * (x + 1.25)**2
@@ -60,6 +61,12 @@ class System:
         for i in reduced_x:
             pot += self.pot_energy(i)
         return pot
+
+    def K(self, v):
+        KE = 0.5 * np.sum(self.m * v**2)
+        # KE_in_KJmol = KE / 1e4
+        # return KE_in_KJmol
+        return KE
 
     
     @staticmethod
@@ -90,13 +97,9 @@ class System:
         F_x = np.array(forces).reshape(x.shape)
         return F_x
 
-    def K(self, v):
-        ke = 0.5 * self.m * (self.v ** 2)
-        return ke.sum()
-
     def instantaneous_T(self, v):
-        N = self.N
-        sumv2 = np.sum(self.m * v**2)
+        N = Config.num_particles
+        sumv2 = 2 * self.K(v)
         t = sumv2 / (N * Units.kB)
         # r_t = (Units.kB / Units.epsilon) * t
         return t

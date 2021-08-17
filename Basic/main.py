@@ -15,17 +15,16 @@ parser = argparse.ArgumentParser()
 parser.add_argument('-c', '--config', help = "optional config file")
 args = parser.parse_args()
 
-cfg = Config()
 
 if args.config:
-    cfg.import_from_file(args.config)
+    Config.import_from_file(args.config)
 
 if __name__ == "__main__":
 
-    ensemble = Ensemble(cfg)
+    ensemble = Ensemble()
     ensemble.run_simulation()
     
-    if cfg.analyze:
+    if Config.analyze:
         from mpi4py import MPI
         comm = MPI.COMM_WORLD
         rank = comm.Get_rank()
@@ -33,39 +32,39 @@ if __name__ == "__main__":
             exit()
 
         print("Analyzing .... \n")
-        an = Analysis(cfg, cfg.run_name)
+        an = Analysis()
 
-        if cfg.run_type == 'remd':
-            for i in range(1000):
-                local_file_path = os.path.join(an.file_path, str(i))
+        # if Config.run_type == 'remd':
+        #     for i in range(1000):
+        #         local_file_path = os.path.join(an.file_path, str(i))
 
-                if not os.path.isdir(local_file_path):
-                    break
-                an_local = Analysis(cfg, cfg.run_name + "/{}".format(i))
-                an_local.initialize_bins([-np.inf, -0.75, 0.25, 1.25, np.inf])
-                an_local.plot_energy()
-                an_local.plot_temperature(cfg.temperatures[i])
-                an_local.load_positions_and_velocities()
-                an_local.well_histogram(cfg.num_particles)
-                an_local.velocity_distribution()
-                an_local.plot_hprime()
+        #         if not os.path.isdir(local_file_path):
+        #             break
+        #         an_local = Analysis(cfg, cfg.run_name + "/{}".format(i))
+        #         an_local.initialize_bins([-np.inf, -0.75, 0.25, 1.25, np.inf])
+        #         an_local.plot_energy()
+        #         an_local.plot_temperature(cfg.temperatures[i])
+        #         # an_local.load_positions_and_velocities()
+        #         # an_local.well_histogram(cfg.num_particles)
+        #         # an_local.velocity_distribution()
+        #         # an_local.plot_hprime()
 
                 
 
 
-            an.initialize_bins([-np.inf, -0.75, 0.25, 1.25, np.inf])
-            an.plot_probs(ensemble.sys.pot_energy, cfg.temperatures[cfg.primary_replica], cfg.primary_replica)
-            exit()
+    #         an.initialize_bins([-np.inf, -0.75, 0.25, 1.25, np.inf])
+    #         an.plot_probs(ensemble.sys.pot_energy, cfg.temperatures[cfg.primary_replica], cfg.primary_replica)
+    #         exit()
         an.plot_energy()
-        an.plot_temperature(cfg.temperature)
+        an.plot_temperature(Config.T)
 
-        an.initialize_bins([-np.inf, -0.75, 0.25, 1.25, np.inf])
-        an.load_positions_and_velocities()
-        an.well_x_time(cfg.num_particles)
-        an.well_histogram(cfg.num_particles)
+    #     an.initialize_bins([-np.inf, -0.75, 0.25, 1.25, np.inf])
+    #     an.load_positions_and_velocities()
+    #     an.well_x_time(cfg.num_particles)
+    #     an.well_histogram(cfg.num_particles)
         an.velocity_distribution()
         
-        if cfg.run_type == 'nvt':
-            an.plot_hprime()
-        print("Analysis Done. \n")
+    #     if cfg.run_type == 'nvt':
+    #         an.plot_hprime()
+    #     print("Analysis Done. \n")
         

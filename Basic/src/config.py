@@ -11,65 +11,76 @@ class Config:
     num_particles = 1
     num_steps = 10
     temperature = 2.0
+    T = (Units.epsilon / Units.kB) * temperature
     run_name = 'default'
     run_type = 'nve'
     analyze = True
     ada = False
     system = '1D_Leach'
+    share_dir = '/share1/shaunak/default'
+    rst = None
+
+    # FOR REMD
+    temperatures = []
     primary_replica = 0
 
-    def import_from_file(self, file_name):
+
+    @staticmethod
+    def import_from_file(file_name):
         try:
             with open(file_name) as json_data_file:
                 data = json.load(json_data_file)
             if 'num_particles' in data:
-                self.num_particles = data['num_particles']
+                Config.num_particles = data['num_particles']
 
             if 'num_steps' in data:
-                self.num_steps = data['num_steps']
+                Config.num_steps = data['num_steps']
 
             if 'share_dir' in data:
-                self.share_dir = data['share_dir']
+                Config.share_dir = data['share_dir']
 
-            if 'temperature' in data:
+            if 'temperatures' in data:
+                comm = MPI.COMM_WORLD
+                rank = comm.Get_rank()
+                if(rank >= len(data['temperature'])):
+                    print("Run the program with number of processes equal to number of replicas! Idjot")
+                Config.temperatures = data['temperature']
+               
 
-                if(isinstance(data['temperature'], list)):
-                    self.temperatures = data['temperature']
-                    comm = MPI.COMM_WORLD
-                    rank = comm.Get_rank()
-                    if(rank >= len(data['temperature'])):
-                        print("Run the program with number of processes equal to number of replicas! Idjot")
-                    else:
-                        self.temperature = data['temperature'][rank]
-                else:
-                    self.temperature = data['temperature']
+            if 'temperature' in data:               
+                Config.temperature = data['temperature']
+                Config.T = (Units.epsilon / Units.kB) * Config.temperature
 
 
             if 'run_type' in data:
-                self.run_type = data['run_type']
+                Config.run_type = data['run_type']
 
             if 'analyze' in data:
-                self.analyze = data['analyze']
+                Config.analyze = data['analyze']
             
             if 'ada' in data:
-                self.ada = data['ada']
+                Config.ada = data['ada']
             
             if 'system' in data:
-                self.system = data['system']
+                Config.system = data['system']
 
             if 'rst' in data:
-                self.rst = data['rst']
+                Config.rst = data['rst']
 
-            self.run_name = os.path.splitext(file_name)[0]
+            Config.run_name = os.path.splitext(file_name)[0]
 
-            if not self.ada:
-                self.files = "../../runs"
+            if not Config.ada:
+                Config.files = "../../runs"
             
             if 'primary_replica' in data:
-                self.primary_replica = data['primary_replica']
+                Config.primary_replica = data['primary_replica']
 
         except FileNotFoundError:
             print("No such file {}".format(file_name))
 
         except json.decoder.JSONDecodeError:
             print("Bad JSON file")
+
+    @staticmethod
+    def print_config():
+        print("T = {}".format(Config.T))

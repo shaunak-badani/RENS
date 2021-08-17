@@ -1,18 +1,19 @@
 import os
 import pandas as pd
+from .config import Config
 
 class FileOperations:
 
-    def __init__(self, cfg):
+    def __init__(self):
 
-        file_dir = cfg.files     
+        file_dir = Config.files     
         
         # Constructing Folders
-        folder_path = os.path.join(file_dir, cfg.run_name)
-        self.run_name = cfg.run_name
+        folder_path = os.path.join(file_dir, Config.run_name)
+        self.run_name = Config.run_name
         self.folder_path = folder_path
-        self.share_dir = cfg.share_dir
-        self.ada = cfg.ada
+        self.share_dir = Config.share_dir
+        self.ada = Config.ada
         os.system("mkdir -p {}".format(folder_path))
 
         # Defining File objects
@@ -72,16 +73,16 @@ class FileOperations:
 
 class FileOperationsREMD(FileOperations):
 
-    def __init__(self, cfg):
+    def __init__(self):
         from mpi4py import MPI
         comm = MPI.COMM_WORLD
         rank = comm.Get_rank()
         
-        root_path = cfg.run_name
-        cfg.run_name += "/{}".format(str(rank))
-        super().__init__(cfg)
-        cfg.run_name = root_path
-        remd_file = os.path.join(cfg.files, root_path, "exchanges.txt")
+        root_path = Config.run_name
+        Config.run_name += "/{}".format(str(rank))
+        super().__init__(Config)
+        Config.run_name = root_path
+        remd_file = os.path.join(Config.files, root_path, "exchanges.txt")
         if rank == 0:
             self.exchanges_file = open(remd_file, "w+")
     

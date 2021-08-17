@@ -5,22 +5,23 @@ import pandas as pd
 
 from scipy import integrate
 from .units import Units
+from .config import Config
 
 
 class Analysis:
-    def __init__(self, cfg, run_name):
+    def __init__(self):
         file_loc = "../../runs"
-        if cfg.ada:
-            ada_path = os.path.join(cfg.share_dir, run_name)
+        if Config.ada:
+            ada_path = os.path.join(Config.share_dir, Config.run_name)
             file_loc = "/scratch/shaunak/1D_Run/analysis"
             os.system("mkdir -p {}".format(file_loc))
             os.system("rsync -aPs ada:{} {}".format(ada_path, file_loc))
         # if cfg.run_type == "remd":
         #     primary_replica = cfg.primary_replica
         #     self.file_path = os.path.join(file_loc, str(primary_replica))
-        self.file_path = os.path.join(file_loc, run_name)
+        self.file_path = os.path.join(file_loc, Config.run_name)
 
-        self.images_path = os.path.join(os.getcwd(), "analysis_plots", run_name)
+        self.images_path = os.path.join(os.getcwd(), "analysis_plots", Config.run_name)
         os.system("mkdir -p {}".format(self.images_path))
 
     def __get_scalars(self):
@@ -151,7 +152,6 @@ class Analysis:
             vel.append([float(i) for i in l])
         vel = np.array(vel)
         vel = vel[:, 1:]
-        
         self.vel = vel
         self.steps = steps
         self.pos = pos
@@ -159,118 +159,6 @@ class Analysis:
         pos_file_buffer.close()
         vel_file_buffer.close()
     
-    def well_x_time(self, num_particles):
-        pos = self.pos
-        separate_images_path = os.path.join(self.images_path, "well_x_time")
-        os.system('mkdir -p {}'.format(separate_images_path))
-
-        particle_no = 0
-        if not hasattr(self, 'bin_boundaries'):
-            print("Initialize bin boundaries first !")
-            return
-        bin_boundaries = self.bin_boundaries
-        well_counts = []
-        
-        wells = np.arange(1, len(bin_boundaries))
-        steps = pos.shape[0]
-        time = np.arange(steps)
-        
-        for particle_no in range(num_particles):
-            well_no = np.zeros(steps)
-            fig = plt.figure(figsize = (21, 7))
-            for i in wells:
-                lower_bound = bin_boundaries[i - 1]
-                upper_bound = bin_boundaries[i]
-                lies_in_well = np.logical_and(pos[:, particle_no] >= lower_bound, \
-                                              pos[:, particle_no] < upper_bound)
-                ind = np.where(lies_in_well)[0]
-                well_no[ind] = i
-            im_path = os.path.join(separate_images_path, "{}.png".format(str(particle_no)))
-            
-            for l in wells:
-                plt.axhline(y = l, linewidth = 2, color = 'goldenrod', alpha = 0.9)
-            plt.plot(time, well_no, color = 'midnightblue', linewidth = 3)
-            plt.yticks(wells)
-            plt.ylim(wells[0] - 1, wells[-1] + 1)
-            
-            plt.yticks(fontsize = 22.5)
-            plt.xticks(fontsize = 22.5)
-
-            plt.xlabel("Steps", fontsize = 30)
-            ylabel = plt.ylabel("Well \n No.", labelpad = 60, fontsize = 30)
-            ylabel.set_rotation(0)
-
-            plt.savefig(im_path)
-            plt.close()
-
-        
-    def well_histogram(self, num_particles):
-        bin_boundaries = self.bin_boundaries
-        pos = self.pos
-        total_wells = [0] * (len(bin_boundaries) - 1)
-        separate_images_path = os.path.join(self.images_path, "well_hist")
-        os.system('mkdir -p {}'.format(separate_images_path))
-        wells = np.arange(1, len(bin_boundaries))
-        text_fs = 20
-        ticks_fs = 15
-        
-        for particle_no in range(num_particles):
-            well_counts = []
-            fig = plt.figure(figsize = (5, 10))
-            for i in wells:
-                lower_bound = bin_boundaries[i - 1]
-                upper_bound = bin_boundaries[i]
-                lies_in_well = np.logical_and(pos[:, particle_no] >= lower_bound, \
-                                     pos[:, particle_no] < upper_bound)
-                well_counts.append(np.count_nonzero(lies_in_well))
-            total_wells = np.add(total_wells, well_counts)
-            im_path = os.path.join(separate_images_path, "{}.png".format(str(particle_no)))
-            plt.bar(wells, well_counts, width = 0.4, color = 'limegreen')
-            
-            plt.yticks(fontsize = ticks_fs)
-            plt.xticks(wells, fontsize = ticks_fs)
-
-            plt.xlabel("Well No.", fontsize = text_fs)
-            ylabel = plt.ylabel("# times \n particle in \n well", labelpad = 60, fontsize = text_fs)
-            ylabel.set_rotation(0)
-            
-            
-            plt.savefig(im_path)
-            plt.close()
-            
-        fig = plt.figure(figsize = (5, 10))
-
-        plt.bar(wells, total_wells, width = 0.4, color = 'limegreen')
-
-        plt.yticks(fontsize = ticks_fs)
-        plt.xticks(wells, fontsize = ticks_fs)
-
-        plt.xlabel("Well No.", fontsize = text_fs)
-        ylabel = plt.ylabel("# Counts of \n all particles \n over time", labelpad = 60, fontsize = text_fs)
-        ylabel.set_rotation(0)
-        
-        well_hist_path = os.path.join(self.images_path, "collective_well_hist.png")
-        plt.savefig(well_hist_path)
-        plt.close()
-        
-    
-    def vel_norm_x_time(self, num_particles):
-        vel_n = os.path.join(self.images_path, "vel_norm")
-        os.system('mkdir -p {}'.format(vel_n))
-        
-        for particle_no in range(num_particles):
-            vel_norm = np.abs(self.vel[:, particle_no])
-            fig = plt.figure(figsize = (21, 7))
-            plt.scatter(self.steps, vel_norm, s = 3, c='fuchsia', alpha = 0.2)
-            plt.yticks(fontsize = 22.5)
-            plt.xticks(fontsize = 22.5)
-
-            plt.xlabel("Steps", fontsize = 30)
-            ylabel = plt.ylabel("Velocity \n Norm", labelpad = 60, fontsize = 30)
-            ylabel.set_rotation(0)
-            vel_norm_path = os.path.join(vel_n, "{}.png".format(str(particle_no)))
-            plt.savefig(vel_norm_path)
-            plt.close()
 
     def plot_hprime(self):
         file_path = self.file_path
@@ -304,16 +192,14 @@ class Analysis:
 
     def velocity_distribution(self):
         self.load_positions_and_velocities()
-        vel_bins = np.arange(-5, 5, 0.5)
-        vel_count = np.zeros_like(vel_bins)
         particle_index = 0
-        for v in self.vel[:, particle_index]:
-            ind = np.argmin(np.abs(vel_bins - v))
-            vel_count[ind] += 1
+        vel_count, be = np.histogram(self.vel[:, particle_index], bins = 30)
+        vel_count = vel_count.astype('float')
+        vel_count /= vel_count.sum()
+        vel_bins = (be[1:] + be[:-1])/2
         plt.plot(vel_bins, vel_count)
         plt.scatter(vel_bins, vel_count)
         for i in vel_bins:
-            
             plt.axvline(x = i, linewidth = 0.1)
         vel_dist = os.path.join(self.images_path, "vel_dist.png")
         plt.savefig(vel_dist)
@@ -365,8 +251,22 @@ class Analysis:
         plt.savefig(im_path)
         plt.close()
 
+    def pos_x_time(self):
+        self.load_positions_and_velocities()
+
+        fig = plt.figure(figsize = (20, 3))
+
+        plt.plot(self.steps, self.pos, lw = 0.5, color="black")
+        plt.gca().spines["top"].set_visible(False)
+        plt.gca().spines["right"].set_visible(False)
+        plt.xticks([])
+        plt.ylabel("Position")
 
 
+        im_path = os.path.join(self.images_path, "pos_x_time.png")
+        plt.savefig(im_path)
+        plt.close()
+        
 
 if __name__ == "__main__":
     an = Analysis()

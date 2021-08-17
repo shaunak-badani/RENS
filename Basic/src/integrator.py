@@ -32,6 +32,7 @@ class REMDIntegrator(VelocityVerletIntegrator):
         self.comm = MPI.COMM_WORLD
         self.rank = self.comm.Get_rank()
         self.no_replicas = self.comm.Get_size()
+        self.exchange_attempts = 0
     
     def swap_positions(self, sys, swap_partner, src):
         # If the current rank is not a source, it is a destination
@@ -46,110 +47,73 @@ class REMDIntegrator(VelocityVerletIntegrator):
             self.comm.send(sys.x, dest = swap_partner, tag = 2)
         return x
     
+
+    def __rex_exchange_as_leader(self, self_energy, peer_rank, cfg, sys):
+        energy = self.comm.recv(source = peer_rank, tag = 1)
+
+        self_temp = cfg.temperature
+        peer_temp = cfg.temperatures[peer_rank]
+
+        u_rand = np.random.uniform()
+        delta = 1 / Units.kB * (1 / self_temp - 1 / peer_temp) * (energy - self_energy)
+        exchange = True
+        if delta > 0:
+            metropolis = np.exp(-delta)
+
+            if u_rand >= metropolis:
+                exchange = False
+
+        x = sys.x
+        v = sys.v
+        self.comm.send(exchange, dest = peer_rank, tag = 2)
+        if exchange:
+            self.comm.send(sys.x, dest = peer_rank, tag = 3)
+            self.comm.send(sys.v, dest = peer_rank, tag = 4)
+            x = self.comm.recv(source = peer_rank, tag = 5)
+            v = self.comm.recv(source = peer_rank, tag = 6)
+        
+            t_cur = sys.instantaneous_T(v)
+            v *= np.sqrt(cfg.temperatures[peer_rank] / t_cur)
+        return x, v, exchange
+
+    def __rex_exchange_as_follower(self, energy, peer_rank, cfg, sys):
+        self.comm.send(energy, dest = peer_rank, tag = 1)
+        x = sys.x[:]
+        v = sys.v[:]
+        exchange = self.comm.recv(source = peer_rank, tag = 2)
+        if exchange:
+            x = self.comm.recv(source = peer_rank, tag = 3)
+            v = self.comm.recv(source = peer_rank, tag = 4)
+            self.comm.send(sys.x, dest = peer_rank, tag = 5)
+            self.comm.send(sys.v, dest = peer_rank, tag = 6)
+
+            t_cur = sys.instantaneous_T(v)
+            v *= np.sqrt(cfg.temperatures[peer_rank] / t_cur)
+
+        return x, v, exchange
+
+    
     def step(self, sys, cfg, step_no, file_io):
         if step_no % self.exchange_period != 0:
             return sys.x, sys.v
         if self.rank == 0:
             file_io.declare_step(step_no)
         
-        ## Root makes the swap cycle
-        if self.rank == 0:
-            k = self.no_replicas // 2
-            src = list(range(0, self.no_replicas, 2))[:k]
-            dest = list(range(1, self.no_replicas, 2))[:k]
-            # if step_no % (2 * self.exchange_period):
-            #     k = self.no_replicas // 2
-            #     src = list(range(0, self.no_replicas, 2))[:k]
-            #     dest = list(range(1, self.no_replicas, 2))[:k]
-            # else:
-            #     k = (self.no_replicas - 1) // 2
-            #     src = list(range(1, self.no_replicas, 2))[:k]
-            #     dest = list(range(2, self.no_replicas, 2))[:k]
+        if self.rank % 2 == 0:
+            peer_rank = self.rank + 1
         else:
-            src = []
-            dest = []
-
-        src = self.comm.bcast(src, root = 0)
-        dest = self.comm.bcast(dest, root = 0)
+            peer_rank = self.rank - 1        
 
         x = sys.x[:]
         v = sys.v[:]
 
-        if self.rank in src:
-            swap_partner_index = src.index(self.rank)
-            swap_partner = dest[swap_partner_index]
-            x_j = self.comm.recv(source = swap_partner, tag = 10)
-            v_j = self.comm.recv(source = swap_partner, tag = 11)
-            t_j = self.comm.recv(source = swap_partner, tag = 12)
+        energy = sys.U(x)
 
-            # Determine if the exchange should happen
-            U_i = sys.U(sys.x)
-            U_j = sys.U(x_j)
-            beta_i = 1 / (Units.kB * cfg.temperature)
-            beta_j = 1 / (Units.kB * t_j)
-            delta = (beta_j - beta_i) * (U_i - U_j)
-
-            exchange = False
-            if delta < 0:
-                exchange = True
-                acc_prob = 1
+        if peer_rank >= 0 and peer_rank < self.no_replicas:
+            if self.rank > peer_rank:
+                x, v, exchange = self.__rex_exchange_as_leader(energy, peer_rank, cfg, sys)
             else:
-                acc_prob = np.exp(-delta)
-                if np.random.uniform() < acc_prob:
-                    exchange = True
-
-            # Send exchange value to dest            
-            self.comm.send(exchange, dest = swap_partner, tag = 14)
-
-            if exchange:
-                # Swap position values
-                self.comm.send(x, dest = swap_partner, tag = 15)
-                self.comm.send(v, dest = swap_partner, tag = 16)
-                self.comm.send(cfg.temperature, dest = swap_partner, tag = 17)
-                x = x_j
-                v = v_j
-                # v = self.rescale_velocities(v, sys, cfg)                
-
-            # Send exchange data to root for logging
-            self.comm.send(exchange, dest = 0, tag = 18)
-            self.comm.send(swap_partner, dest = 0, tag = 19)
-            self.comm.send(acc_prob, dest = 0, tag = 20)
-            
-        if self.rank in dest:
-            swap_partner_index = dest.index(self.rank)
-            swap_partner = src[swap_partner_index]
-            self.comm.send(x, dest = swap_partner, tag = 10)
-            self.comm.send(v, dest = swap_partner, tag = 11)
-            self.comm.send(cfg.temperature, dest = swap_partner, tag = 12)	
-
-            # Receive 
-            exchange = self.comm.recv(source = swap_partner, tag = 14)
-
-            if exchange:
-                x = self.comm.recv(source = swap_partner, tag = 15)
-                v = self.comm.recv(source = swap_partner, tag = 16)
-                t = self.comm.recv(source = swap_partner, tag = 17)
-                # v = self.rescale_velocities(v, sys, cfg)
-
-
-
-        # Root collects data of all exchanges
-        if self.rank == 0:
-            if self.rank in src:
-                out_exchange = "Yes" if exchange else "No"
-                file_io.write_exchanges(self.rank, swap_partner, out_exchange, acc_prob)
-
-                # 0 will always be first element in src
-                src.pop(0)
-
-            for exchange_initiator in src:
-                exchange = self.comm.recv(source = exchange_initiator, tag = 18)
-                dest_rank = self.comm.recv(source = exchange_initiator, tag = 19)
-                acc_prob = self.comm.recv(source = exchange_initiator, tag = 20)
-                out_exchange = "Yes" if exchange else "No"
-                file_io.write_exchanges(exchange_initiator, dest_rank, out_exchange, acc_prob)
-                
-            file_io.done_step()
+                x, v, exchange = self.__rex_exchange_as_follower(energy, peer_rank, cfg, sys)
 
         return x, v
 

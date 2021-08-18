@@ -6,6 +6,9 @@ from src.config import Config
 from src.analysis import Analysis
 from src.system import System
 
+from mpi4py import MPI
+
+
 
 parser = argparse.ArgumentParser()
 parser.add_argument('-c', '--config', help = "optional config file")
@@ -21,9 +24,9 @@ if Config.run_type == 'remd':
     an.initialize_bins([-np.inf, -0.75, 0.25, 1.25, np.inf])
     an.plot_probs(System().pot_energy, Config.T(), Config.primary_replica)
     an.plot_free_energy(System().pot_energy)
-    path = os.path.join(Config.files, Config.run_name)
+    path = an.file_path
     replicas = [d for d in os.listdir(path) if os.path.isdir(os.path.join(path, d))]
-
+    print(replicas)
     for replica in replicas:
         root_path = Config.run_name
         Config.run_name += "/{}".format(str(replica))

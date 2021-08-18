@@ -24,4 +24,6 @@ unset __conda_setup
 # <<< conda initialize <<<
 
 conda activate MD
-python3 nvt_new.py
+mpirun -np 2 python3 main.py -c remd.json
+
+

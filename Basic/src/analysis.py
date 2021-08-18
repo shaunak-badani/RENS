@@ -269,7 +269,7 @@ class Analysis:
         plt.xlabel("Position")
         plt.ylabel("Energy")
 
-        probs, bin_edges = np.histogram(self.pos[:, particle_no])
+        probs, bin_edges = np.histogram(self.pos[:, particle_no], bins = 30)
         probs = probs.astype('float')
         probs /= probs.sum()
         Config.replica_id = Config.primary_replica

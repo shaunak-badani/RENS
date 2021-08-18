@@ -16,7 +16,6 @@ class Config:
     analyze = True
     ada = False
     system = '1D_Leach'
-    share_dir = '/share1/shaunak/default'
     rst = None
 
     # FOR REMD

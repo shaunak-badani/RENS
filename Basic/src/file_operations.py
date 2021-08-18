@@ -35,6 +35,8 @@ class FileOperations:
         
 
     def write_vectors(self, x, v, step):
+        if step % 10 != 0:
+            return
         str_x = ' '.join([str(i) for i in x.flatten()])
         self.pos_file.write("{} {}".format(step, str_x))
         self.pos_file.write("\n")
@@ -44,11 +46,15 @@ class FileOperations:
         self.vel_file.write("\n")
 
     def write_scalars(self, ke, pe, T, step):
+        if step % 10 != 0:
+            return
         te = pe + ke
         self.scalar_file.write("{} {} {} {} {}".format(step, ke, pe, te, T))
         self.scalar_file.write("\n")
     
     def write_surrounding_energy(self, surr_energy, step):
+        if step % 10 != 0:
+            return
         if not hasattr(self, 'surr_file'):
             surr_file_path = os.path.join(self.folder_path, "surr_file.txt")
             self.surr_file = open(surr_file_path, "w+")
@@ -71,8 +77,13 @@ class FileOperations:
             self.surr_file.close()
         share_dir = self.share_dir
         if self.ada:
+            from mpi4py import MPI
+            
+            if MPI.COMM_WORLD.Get_rank() != 0:
+                return
+            folder_path = os.path.join(Config.files, Config.run_name)
             os.system('rsync -aPs --rsync-path="mkdir -p {} \
-            && rsync" {} ada:{}'.format(share_dir, self.folder_path, share_dir))
+            && rsync" {} ada:{}'.format(share_dir, folder_path, share_dir))
             print("Files sent to share1 ")
 
 

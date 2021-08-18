@@ -4,7 +4,7 @@ from .config import Config
 
 class FileOperations:
 
-    def __init__(self):
+    def __init__(self, first_time = True):
 
         file_dir = Config.files     
         
@@ -21,12 +21,17 @@ class FileOperations:
         vel_file = os.path.join(folder_path, "v.txt")
         scalar_file = os.path.join(folder_path, "scalars.txt")
 
-        self.pos_file = open(pos_file, "w+")
-        self.vel_file = open(vel_file, "w+")
+        file_mode = "w+"
+        if not first_time:
+            file_mode = "a+"
 
-        self.scalar_file = open(scalar_file, "w+")
-        self.scalar_file.write("Step KE PE TE T")
-        self.scalar_file.write("\n")
+        self.pos_file = open(pos_file, file_mode)
+        self.vel_file = open(vel_file, file_mode)
+
+        self.scalar_file = open(scalar_file, file_mode)
+        if first_time:
+            self.scalar_file.write("Step KE PE TE T")
+            self.scalar_file.write("\n")
         
 
     def write_vectors(self, x, v, step):
@@ -79,20 +84,35 @@ class FileOperationsREMD(FileOperations):
         rank = comm.Get_rank()
         
         root_path = Config.run_name
-        Config.run_name += "/{}".format(str(rank))
-        super().__init__(Config)
+        Config.run_name += "/{}".format(str(Config.replica_id))
+        super().__init__()
         Config.run_name = root_path
-        remd_file = os.path.join(Config.files, root_path, "exchanges.txt")
+        self.remd_file = os.path.join(Config.files, root_path, "exchanges.txt")
         if rank == 0:
-            self.exchanges_file = open(remd_file, "w+")
+            self.exchanges_file = open(self.remd_file, "w")
+            self.exchanges_file.write("Step Src Dest Exchanged Prob")
+            self.exchanges_file.write("\n")
+            self.exchanges_file.close()
+        
     
     def declare_step(self, step_no):
-        self.exchanges_file.write("Step : {}".format(step_no))
-        self.exchanges_file.write("\n")
+        self.exchanges_file = open(self.remd_file, "a+")
+        self.exchanges_file.write("{} ".format(step_no))
+        self.exchanges_file.close()
     
+    def update_files(self):
+        self.pos_file.close()
+        self.vel_file.close()
+        self.scalar_file.close()
+
+        root_path = Config.run_name
+        Config.run_name += "/{}".format(str(Config.replica_id))
+        super().__init__(first_time = False)
+        Config.run_name = root_path
+        
+
     def write_exchanges(self, src_rank, dest_rank, exchanged, acc_prob):
+        self.exchanges_file = open(self.remd_file, "a+")
         self.exchanges_file.write("{0} {1} {2} {3:1.3f}".format(src_rank, dest_rank, exchanged, acc_prob))
         self.exchanges_file.write("\n")
-
-    def done_step(self):
-        self.exchanges_file.write("\n")
+        self.exchanges_file.close()

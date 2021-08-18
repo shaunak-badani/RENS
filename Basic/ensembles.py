@@ -15,28 +15,27 @@ import os
 
 class Ensemble:
     
-    def __init__(self, cfg):
-        self.sys = System(cfg)
-        if cfg.system == 'free_particle':
-            self.sys = FreeParticleSystem(cfg)
-        elif cfg.system == 'LJ':
-            self.sys = LJ(cfg)
-        if cfg.run_type == 'remd':
-            self.file_io = FileOperationsREMD(cfg)
+    def __init__(self):
+        self.sys = System()
+        if Config.system == 'free_particle':
+            self.sys = FreeParticleSystem()
+        elif Config.system == 'LJ':
+            self.sys = LJ()
+        if Config.run_type == 'remd':
+            self.file_io = FileOperationsREMD()
         else:
-            self.file_io = FileOperations(cfg)
+            self.file_io = FileOperations()
         
         self.stepper = VelocityVerletIntegrator()
-        self.ensemble_type = cfg.run_type
-        self.num_steps = cfg.num_steps
-        self.cfg = cfg
+        self.ensemble_type = Config.run_type
+        self.num_steps = Config.num_steps
 
-        self.nht = NoseHoover(self.stepper.dt, cfg)
+        self.nht = NoseHoover(self.stepper.dt)
 
-        if cfg.run_type == 'remd':
+        if Config.run_type == 'remd':
             self.remd_integrator = REMDIntegrator()
 
-        if cfg.run_type == 'minimize':
+        if Config.run_type == 'minimize':
             self.minimizer = Minimizer(1e-2)
     
     def run_simulation(self):
@@ -44,9 +43,11 @@ class Ensemble:
             if self.ensemble_type == 'nve':
                 x, v = self.stepper.step(self.sys, step_no)
             elif self.ensemble_type == 'nvt':
-                v = self.nht.step(self.sys.m, self.sys.v)
+                KE = self.sys.K(self.sys.v)
+                v = self.nht.step(KE, self.sys.v)
                 x, v = self.stepper.step(self.sys, step_no, v = v)
-                v = self.nht.step(self.sys.m, v)
+                KE = self.sys.K(v)
+                v = self.nht.step(KE, v)
             elif self.ensemble_type == 'minimize':
                 x = self.minimizer.step(self.sys)
                 v = self.sys.v
@@ -54,11 +55,12 @@ class Ensemble:
                 from mpi4py import MPI
                 comm = MPI.COMM_WORLD
                 rank = comm.Get_rank()
-                x, v = self.remd_integrator.step(self.sys, self.cfg, step_no, self.file_io)
-                x, v = self.sys.x, self.sys.v
-                v = self.nht.step(self.sys.m, v)
-                x, v = self.stepper.step(self.sys, step_no, x = x, v = v)
-                v = self.nht.step(self.sys.m, v)
+                exchange = self.remd_integrator.step(self.sys.U(self.sys.x), step_no, self.file_io)
+                KE = self.sys.K(self.sys.v)
+                v = self.nht.step(KE, self.sys.v)
+                x, v = self.stepper.step(self.sys, step_no, v = v)
+                KE = self.sys.K(v)
+                v = self.nht.step(KE, v)
             else:
                 print("Use nve or nvt as run_type!")
                 break

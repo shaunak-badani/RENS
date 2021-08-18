@@ -11,7 +11,6 @@ class Config:
     num_particles = 1
     num_steps = 10
     temperature = 2.0
-    T = (Units.epsilon / Units.kB) * temperature
     run_name = 'default'
     run_type = 'nve'
     analyze = True
@@ -23,7 +22,16 @@ class Config:
     # FOR REMD
     temperatures = []
     primary_replica = 0
+    replica_id = MPI.COMM_WORLD.Get_rank()
 
+    def T():
+        if len(Config.temperatures) > 0:
+            t = Config.temperatures[Config.replica_id]
+        else:
+            t = Config.temperature
+        t *= (Units.epsilon / Units.kB)
+        return t
+    
 
     @staticmethod
     def import_from_file(file_name):
@@ -42,14 +50,13 @@ class Config:
             if 'temperatures' in data:
                 comm = MPI.COMM_WORLD
                 rank = comm.Get_rank()
-                if(rank >= len(data['temperature'])):
+                if(rank >= len(data['temperatures'])):
                     print("Run the program with number of processes equal to number of replicas! Idjot")
-                Config.temperatures = data['temperature']
+                Config.temperatures = data['temperatures']
                
 
             if 'temperature' in data:               
                 Config.temperature = data['temperature']
-                Config.T = (Units.epsilon / Units.kB) * Config.temperature
 
 
             if 'run_type' in data:
@@ -83,4 +90,4 @@ class Config:
 
     @staticmethod
     def print_config():
-        print("T = {}".format(Config.T))
+        print("T = {}".format(Config.T()))

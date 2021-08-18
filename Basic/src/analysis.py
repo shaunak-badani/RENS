@@ -143,6 +143,7 @@ class Analysis:
             l = line.split(' ')
             pos.append([float(i) for i in l])
         pos = np.array(pos)
+        # print(pos)
         steps = pos[:, 0]
         pos = pos[:, 1:]
 
@@ -236,20 +237,51 @@ class Analysis:
         
         well_counts /= well_counts.sum()
         colors = ['r', 'g', 'b', 'm']
+        markers=["+", "x", "o", "s"]
 
         for index, line in enumerate(boltzmann_integrand):
-            plt.axhline(y = line, linewidth = 3, label='#{}'.format(index + 1), color = colors[index])
-        plt.scatter(0, well_counts[0], color=colors[0])
-        plt.scatter(0, well_counts[1], color=colors[1])
-        plt.scatter(0, well_counts[2], color=colors[2])
-        plt.scatter(0, well_counts[3], color=colors[3])
+            plt.axhline(y = line, linewidth = 3, color = colors[index])
+            plt.scatter(0, well_counts[index], marker = markers[index], color = colors[index], label='#{}'.format(index + 1) )
         plt.xlabel("Run number")
         # plt.ylim([0.2, 0.3])
         plt.ylabel("Probability of particle in well")
+        plt.legend()
 
         im_path = os.path.join(self.images_path, "boltzmann.png")
         plt.savefig(im_path)
         plt.close()
+
+    def plot_free_energy(self, pot_energy):
+        if not hasattr(self, 'pos'):
+            self.load_positions_and_velocities()
+            
+        root_dir = self.file_path
+        self.file_path = os.path.join(self.file_path, str(Config.primary_replica))
+        self.load_positions_and_velocities()
+        self.file_path = root_dir
+        particle_no = 0
+        
+        pos = self.pos
+
+        linspace = np.linspace(-2, 2.25, 1000)
+        U = np.array([pot_energy(i) for i in linspace])
+        plt.plot(linspace, U)
+        plt.xlabel("Position")
+        plt.ylabel("Energy")
+
+        probs, bin_edges = np.histogram(self.pos[:, particle_no])
+        probs = probs.astype('float')
+        probs /= probs.sum()
+        Config.replica_id = Config.primary_replica
+        free_energy = -Units.kB * Config.T() * np.log(probs)
+        free_energy -= free_energy.min()
+        coords = (bin_edges[1:] + bin_edges[:-1]) / 2
+        plt.plot(coords, free_energy, lw = 4, color='green')
+
+        im_path = os.path.join(self.images_path, "Free.png")
+        plt.savefig(im_path)
+        plt.close()
+
 
     def pos_x_time(self):
         self.load_positions_and_velocities()

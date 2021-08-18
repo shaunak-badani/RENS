@@ -16,7 +16,7 @@ class System:
 
     def __init_velocities(self):
         N = Config.num_particles
-        T = Config.T
+        T = Config.T()
         v = np.random.random(size = (N, 1)) - 0.5
         sumv2 = np.sum(self.m * v**2)
         fs = np.sqrt((N * Units.kB * T) / sumv2)

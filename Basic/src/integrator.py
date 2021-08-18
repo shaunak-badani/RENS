@@ -1,6 +1,7 @@
 from .system import System
 from .units import Units
 import numpy as np
+from .config import Config
 
 class VelocityVerletIntegrator:
     def __init__(self):
@@ -48,80 +49,75 @@ class REMDIntegrator(VelocityVerletIntegrator):
         return x
     
 
-    def __rex_exchange_as_leader(self, self_energy, peer_rank, cfg, sys):
+    def __rex_exchange_as_leader(self, self_energy, peer_rank):
         energy = self.comm.recv(source = peer_rank, tag = 1)
+        peer_id = self.comm.recv(source = peer_rank, tag = 2)
+        peer_temp = self.comm.recv(source = peer_rank, tag = 3)
 
-        self_temp = cfg.temperature
-        peer_temp = cfg.temperatures[peer_rank]
+        self_temp = Config.T()
 
-        u_rand = np.random.uniform()
-        delta = 1 / Units.kB * (1 / self_temp - 1 / peer_temp) * (energy - self_energy)
+        beta_i = 1 / (Units.kB * self_temp)
+        beta_j = 1 / (Units.kB * peer_temp)
+
+        delta = (beta_i - beta_j) * (energy - self_energy)
+
         exchange = True
+        metropolis = 1
         if delta > 0:
             metropolis = np.exp(-delta)
+            u_rand = np.random.uniform()
 
             if u_rand >= metropolis:
                 exchange = False
 
-        x = sys.x
-        v = sys.v
-        self.comm.send(exchange, dest = peer_rank, tag = 2)
+        self.comm.send(exchange, dest = peer_rank, tag = 4)
         if exchange:
-            self.comm.send(sys.x, dest = peer_rank, tag = 3)
-            self.comm.send(sys.v, dest = peer_rank, tag = 4)
-            x = self.comm.recv(source = peer_rank, tag = 5)
-            v = self.comm.recv(source = peer_rank, tag = 6)
+            self.comm.send(Config.replica_id, dest = peer_rank, tag = 5)
+            Config.replica_id = peer_id
+        return exchange, metropolis
         
-            t_cur = sys.instantaneous_T(v)
-            v *= np.sqrt(cfg.temperatures[peer_rank] / t_cur)
-        return x, v, exchange
 
-    def __rex_exchange_as_follower(self, energy, peer_rank, cfg, sys):
+    def __rex_exchange_as_follower(self, energy, peer_rank):
         self.comm.send(energy, dest = peer_rank, tag = 1)
-        x = sys.x[:]
-        v = sys.v[:]
-        exchange = self.comm.recv(source = peer_rank, tag = 2)
+        self.comm.send(Config.replica_id, dest = peer_rank, tag = 2)
+        self.comm.send(Config.T(), dest = peer_rank, tag = 3)
+
+        exchange = self.comm.recv(source = peer_rank, tag = 4)
         if exchange:
-            x = self.comm.recv(source = peer_rank, tag = 3)
-            v = self.comm.recv(source = peer_rank, tag = 4)
-            self.comm.send(sys.x, dest = peer_rank, tag = 5)
-            self.comm.send(sys.v, dest = peer_rank, tag = 6)
-
-            t_cur = sys.instantaneous_T(v)
-            v *= np.sqrt(cfg.temperatures[peer_rank] / t_cur)
-
-        return x, v, exchange
+            peer_id = self.comm.recv(source = peer_rank, tag = 5)
+            Config.replica_id = peer_id
+        
+        return exchange, 0.69
 
     
-    def step(self, sys, cfg, step_no, file_io):
+    def step(self, energy, step_no, file_io):
         if step_no % self.exchange_period != 0:
-            return sys.x, sys.v
-        if self.rank == 0:
-            file_io.declare_step(step_no)
+            return
         
         if self.rank % 2 == 0:
             peer_rank = self.rank + 1
         else:
             peer_rank = self.rank - 1        
 
-        x = sys.x[:]
-        v = sys.v[:]
 
-        energy = sys.U(x)
-
+        exchange = False
         if peer_rank >= 0 and peer_rank < self.no_replicas:
             if self.rank > peer_rank:
-                x, v, exchange = self.__rex_exchange_as_leader(energy, peer_rank, cfg, sys)
+                exchange, acc_prob = self.__rex_exchange_as_leader(energy, peer_rank)
+                file_io.declare_step(step_no)
+                file_io.write_exchanges(self.rank, peer_rank, exchange, acc_prob)
+                
             else:
-                x, v, exchange = self.__rex_exchange_as_follower(energy, peer_rank, cfg, sys)
-
-        return x, v
+                exchange, _ = self.__rex_exchange_as_follower(energy, peer_rank)
+            if exchange:
+                file_io.update_files()
+        return exchange
 
         
     
-    def rescale_velocities(self, v, sys, cfg):
+    # def rescale_velocities(self, v, sys, cfg):
         
-        # Rescale velocities
-        T_current = sys.instantaneous_T(v)
-        v_new = v * (cfg.temperature / T_current)
-        return v_new
+    #     # Rescale velocities
+    #     T_current = sys.instantaneous_T(v)
+    #     v_new = v * (cfg.temperature / T_current)
+    #     return v_new

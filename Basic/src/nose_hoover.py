@@ -13,19 +13,19 @@ class NoseHoover():
         self.xi = np.zeros(M)
         self.dt = dt
         self.num_particles = Config.num_particles
-        self.Q = np.full(M, Units.kB * Config.T / freq**2)
+        self.Q = np.full(M, Units.kB * Config.T() / freq**2)
         self.Q[0] *= Config.num_particles
 
 
     def surr_energy(self):
-        total_surrounding_energy = (self.num_particles * self.xi[0] + self.xi[1:].sum()) * Units.kB * Config.T 
+        total_surrounding_energy = (self.num_particles * self.xi[0] + self.xi[1:].sum()) * Units.kB * Config.T() 
         total_surrounding_energy += 0.5 * np.sum(self.Q * self.vxi**2)
         return total_surrounding_energy
 
     def step(self, KE, v):
         
         N_f = self.num_particles
-        T = Config.T
+        T = Config.T()
         M = self.M
         n_c = self.n_c
         delta = (self.dt / n_c)

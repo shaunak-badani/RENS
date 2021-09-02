@@ -217,7 +217,6 @@ class Analysis:
         wells = np.arange(1, len(bin_boundaries))
         for i in wells:
             boltzmann_integrand[i - 1] = integrate.quad(lambda x: np.exp(-beta * pot_energy(x)), bin_boundaries[i-1], bin_boundaries[i])[0]
-        boltzmann_integrand /= boltzmann_integrand.sum()
 
         well_counts = np.zeros_like(wells, dtype="float")
 
@@ -238,6 +237,16 @@ class Analysis:
         well_counts /= well_counts.sum()
         colors = ['r', 'g', 'b', 'm']
         markers=["+", "x", "o", "s"]
+
+        probs, bin_edges = np.histogram(self.pos[:, particle_no], bins = 40)
+        probs = probs.astype('float')
+        probs /= probs.sum()
+
+        delta_x = bin_edges[1] - bin_edges[0]
+        print(boltzmann_integrand.sum())
+        well_counts *= (1  / (boltzmann_integrand * well_counts.max()))
+        boltzmann_integrand /= boltzmann_integrand.sum()
+
 
         for index, line in enumerate(boltzmann_integrand):
             plt.axhline(y = line, linewidth = 3, color = colors[index])
@@ -269,14 +278,14 @@ class Analysis:
         plt.xlabel("Position")
         plt.ylabel("Energy")
 
-        probs, bin_edges = np.histogram(self.pos[:, particle_no], bins = 30)
+        probs, bin_edges = np.histogram(self.pos[:, particle_no], bins = 40)
         probs = probs.astype('float')
         probs /= probs.sum()
         Config.replica_id = Config.primary_replica
         free_energy = -Units.kB * Config.T() * np.log(probs)
         free_energy -= free_energy.min()
         coords = (bin_edges[1:] + bin_edges[:-1]) / 2
-        plt.plot(coords, free_energy, lw = 4, color='green')
+        plt.plot(coords, free_energy, lw = 2, color='brown')
 
         im_path = os.path.join(self.images_path, "Free.png")
         plt.savefig(im_path)

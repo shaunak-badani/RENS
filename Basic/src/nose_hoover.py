@@ -15,6 +15,9 @@ class NoseHoover():
         self.num_particles = Config.num_particles
         self.Q = np.full(M, Units.kB * Config.T() / freq**2)
         self.Q[0] *= Config.num_particles
+        self.w = np.array([0.2967324292201065,  0.2967324292201065, -0.1869297168804260, 0.2967324292201065, 0.2967324292201065])
+        # self.w = np.array([1])
+        print(self.w.sum())
 
 
     def surr_energy(self):
@@ -22,52 +25,56 @@ class NoseHoover():
         total_surrounding_energy += 0.5 * np.sum(self.Q * self.vxi**2)
         return total_surrounding_energy
 
-    def step(self, KE, v):
+    def step(self, m, v):
         
         N_f = self.num_particles
         T = Config.T()
         M = self.M
         n_c = self.n_c
-        delta = (self.dt / n_c)
+        n_ys = self.w.shape[0]
         SCALE = 1.0
+        KE2 = np.sum(m * v**2)        
         
         
         for i in range(n_c):
-            KE2 = 2 * KE
-            
-            G_M = (self.Q[M - 2] * self.vxi[M - 2]**2 - Units.kB * T) / self.Q[M - 1]
-            self.vxi[M - 1] += (delta / 4) * G_M
+            for w_j in self.w:
+                delta = (w_j * self.dt / n_c)
 
-            for j in range(M - 2, 0, -1):
-                self.vxi[j] *= np.exp(-delta / 8 * self.vxi[j + 1])
-                G_j = (self.Q[j - 1] * self.vxi[j-1]**2 - Units.kB * T) / self.Q[j]
-                self.vxi[j] += G_j * delta / 4
-                self.vxi[j] *= np.exp(-delta / 8 * self.vxi[j + 1])
+                
+                G_M = (self.Q[M - 2] * self.vxi[M - 2]**2 - Units.kB * T) / self.Q[M - 1]
+                self.vxi[M - 1] += (delta / 4) * G_M
 
-            self.vxi[0] *= np.exp(-delta / 8 * self.vxi[1]) 
-            G_1 = (KE2 - N_f * Units.kB * T) / self.Q[0]
-            self.vxi[0] += (delta / 4) * G_1 
-            self.vxi[0] *= np.exp(-delta / 8 * self.vxi[1])
+                for j in range(M - 2, 0, -1):
+                    self.vxi[j] *= np.exp(-delta / 8 * self.vxi[j + 1])
+                    G_j = (self.Q[j - 1] * self.vxi[j-1]**2 - Units.kB * T) / self.Q[j]
+                    self.vxi[j] += G_j * delta / 4
+                    self.vxi[j] *= np.exp(-delta / 8 * self.vxi[j + 1])
 
-            # UPDATE xi and v_new
-            self.xi += (delta/2) * self.vxi
-            SCALE *= np.exp(-delta / 2 * self.vxi[0])
-            
+                self.vxi[0] *= np.exp(-delta / 8 * self.vxi[1]) 
+                G_1 = (KE2 - N_f * Units.kB * T) / self.Q[0]
+                self.vxi[0] += (delta / 4) * G_1 
+                self.vxi[0] *= np.exp(-delta / 8 * self.vxi[1])
 
-            # REVERSE
-            self.vxi[0] *= np.exp(-delta / 8 * self.vxi[1]) 
-            G_1 = (KE2 * SCALE * SCALE - N_f * Units.kB * T) / self.Q[0]
-            self.vxi[0] += (delta / 4) * G_1 
-            self.vxi[0] *= np.exp(-delta / 8 * self.vxi[1])
+                # UPDATE xi and v_new
+                self.xi += (delta/2) * self.vxi
+                SCALE_FACTOR = np.exp(-delta / 2 * self.vxi[0])
+                SCALE *= SCALE_FACTOR
+                KE2 *= SCALE_FACTOR * SCALE_FACTOR
 
-            for j in range(1, M - 1):
-                self.vxi[j] *= np.exp(-delta / 8 * self.vxi[j + 1])
-                G_j = (self.Q[j - 1] * self.vxi[j-1]**2 - Units.kB * T) / self.Q[j]
-                self.vxi[j] += G_j * delta / 4
-                self.vxi[j] *= np.exp(-delta / 8 * self.vxi[j + 1])
+                # REVERSE
+                self.vxi[0] *= np.exp(-delta / 8 * self.vxi[1]) 
+                G_1 = (KE2 * SCALE * SCALE - N_f * Units.kB * T) / self.Q[0]
+                self.vxi[0] += (delta / 4) * G_1 
+                self.vxi[0] *= np.exp(-delta / 8 * self.vxi[1])
 
-            G_M = (self.Q[M - 2] * self.vxi[M - 2]**2 - Units.kB * T) / self.Q[M - 1]
-            self.vxi[M - 1] += (delta / 4) * G_M
+                for j in range(1, M - 1):
+                    self.vxi[j] *= np.exp(-delta / 8 * self.vxi[j + 1])
+                    G_j = (self.Q[j - 1] * self.vxi[j-1]**2 - Units.kB * T) / self.Q[j]
+                    self.vxi[j] += G_j * delta / 4
+                    self.vxi[j] *= np.exp(-delta / 8 * self.vxi[j + 1])
+
+                G_M = (self.Q[M - 2] * self.vxi[M - 2]**2 - Units.kB * T) / self.Q[M - 1]
+                self.vxi[M - 1] += (delta / 4) * G_M
         
         v_new = v*SCALE
         return v_new

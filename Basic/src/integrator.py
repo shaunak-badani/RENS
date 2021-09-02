@@ -27,7 +27,7 @@ class VelocityVerletIntegrator:
 class REMDIntegrator(VelocityVerletIntegrator):
     
     def __init__(self):
-        self.exchange_period = 500    
+        self.exchange_period = 1000    
         super().__init__()
         from mpi4py import MPI
         self.comm = MPI.COMM_WORLD

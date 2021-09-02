@@ -43,11 +43,10 @@ class Ensemble:
             if self.ensemble_type == 'nve':
                 x, v = self.stepper.step(self.sys, step_no)
             elif self.ensemble_type == 'nvt':
-                KE = self.sys.K(self.sys.v)
-                v = self.nht.step(KE, self.sys.v)
+                v = self.nht.step(self.sys.m, self.sys.v)
                 x, v = self.stepper.step(self.sys, step_no, v = v)
                 KE = self.sys.K(v)
-                v = self.nht.step(KE, v)
+                v = self.nht.step(self.sys.m, v)
             elif self.ensemble_type == 'minimize':
                 x = self.minimizer.step(self.sys)
                 v = self.sys.v
@@ -56,11 +55,10 @@ class Ensemble:
                 comm = MPI.COMM_WORLD
                 rank = comm.Get_rank()
                 exchange = self.remd_integrator.step(self.sys.U(self.sys.x), step_no, self.file_io)
-                KE = self.sys.K(self.sys.v)
-                v = self.nht.step(KE, self.sys.v)
+                v = self.nht.step(self.sys.m, self.sys.v)
                 x, v = self.stepper.step(self.sys, step_no, v = v)
                 KE = self.sys.K(v)
-                v = self.nht.step(KE, v)
+                v = self.nht.step(self.sys.m, v)
             else:
                 print("Use nve or nvt as run_type!")
                 break

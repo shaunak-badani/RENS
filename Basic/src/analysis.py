@@ -207,6 +207,8 @@ class Analysis:
         plt.savefig(vel_dist)
          
         plt.close()
+
+    
     
     def plot_probs(self, pot_energy, temperature, primary_replica):
         if not hasattr(self, 'bin_boundaries'):
@@ -244,7 +246,6 @@ class Analysis:
         probs /= probs.sum()
 
         delta_x = bin_edges[1] - bin_edges[0]
-        print(boltzmann_integrand.sum())
         well_counts *= (1  / (boltzmann_integrand * well_counts.max()))
         boltzmann_integrand /= boltzmann_integrand.sum()
 
@@ -253,7 +254,6 @@ class Analysis:
             plt.axhline(y = line, linewidth = 3, color = colors[index])
             plt.scatter(0, well_counts[index], marker = markers[index], color = colors[index], label='#{}'.format(index + 1) )
         plt.xlabel("Run number")
-        # plt.ylim([0.2, 0.3])
         plt.ylabel("Probability of particle in well")
         plt.legend()
 
@@ -289,6 +289,37 @@ class Analysis:
         plt.plot(coords, free_energy, lw = 2, color='brown')
 
         im_path = os.path.join(self.images_path, "Free.png")
+        plt.savefig(im_path)
+        plt.close()
+
+    def plot_prob_distribution(self, pot_energy, temperature, primary_replica):
+        if not hasattr(self, 'pos'):
+            root_dir = self.file_path
+            self.file_path = os.path.join(self.file_path, str(Config.primary_replica))
+            self.load_positions_and_velocities()
+            self.file_path = root_dir
+            
+        root_dir = self.file_path
+        self.file_path = os.path.join(self.file_path, str(Config.primary_replica))
+        self.file_path = root_dir
+        particle_no = 0
+        
+        pos = self.pos
+
+        probs, bin_edges = np.histogram(self.pos[:, particle_no], bins = 50, density = True)
+        coords = (bin_edges[1:] + bin_edges[:-1]) / 2
+
+        U = np.array([pot_energy(i) for i in coords])
+        Config.replica_id = Config.primary_replica
+        expected_prob_dist = np.exp(-U / (Config.T() * Units.kB))
+
+        plt.plot(coords, expected_prob_dist, color = 'green')
+        plt.xlabel("Position")
+        plt.ylabel("Probability density")
+
+        plt.scatter(coords, probs, s = 20, color='purple')
+
+        im_path = os.path.join(self.images_path, "Prob_dist.png")
         plt.savefig(im_path)
         plt.close()
 

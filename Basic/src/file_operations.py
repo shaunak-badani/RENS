@@ -15,7 +15,7 @@ class FileOperations:
         self.share_dir = Config.share_dir
         self.ada = Config.ada
         os.system("mkdir -p {}".format(folder_path))
-
+        
         # Defining File objects
         pos_file = os.path.join(folder_path, "p.txt")
         vel_file = os.path.join(folder_path, "v.txt")
@@ -32,10 +32,12 @@ class FileOperations:
         if first_time:
             self.scalar_file.write("Step KE PE TE T")
             self.scalar_file.write("\n")
+
+        self.output_period = Config.output_period
         
 
     def write_vectors(self, x, v, step):
-        if step % 10 != 0:
+        if step % self.output_period != 0:
             return
         str_x = ' '.join([str(i) for i in x.flatten()])
         self.pos_file.write("{} {}".format(step, str_x))
@@ -46,14 +48,14 @@ class FileOperations:
         self.vel_file.write("\n")
 
     def write_scalars(self, ke, pe, T, step):
-        if step % 10 != 0:
+        if step % self.output_period != 0:
             return
         te = pe + ke
         self.scalar_file.write("{} {} {} {} {}".format(step, ke, pe, te, T))
         self.scalar_file.write("\n")
     
     def write_hprime(self, universe_energy, step):
-        if step % 10 != 0:
+        if step % self.output_period != 0:
             return
         if not hasattr(self, 'universe_file'):
             universe_path = os.path.join(self.folder_path, "univ_file.txt")
@@ -96,7 +98,7 @@ class FileOperationsREMD(FileOperations):
         
         root_path = Config.run_name
         Config.run_name += "/{}".format(str(Config.replica_id))
-        super().__init__()
+        super().__init__(Config.output_period)
         Config.run_name = root_path
         self.remd_file = os.path.join(Config.files, root_path, "exchanges.txt")
         if rank == 0:

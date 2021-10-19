@@ -20,7 +20,6 @@ class Analysis:
         #     primary_replica = cfg.primary_replica
         #     self.file_path = os.path.join(file_loc, str(primary_replica))
         self.file_path = os.path.join(file_loc, Config.run_name)
-
         self.images_path = os.path.join(os.getcwd(), "analysis_plots", Config.run_name)
         os.system("mkdir -p {}".format(self.images_path))
 

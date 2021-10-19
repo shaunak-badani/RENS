@@ -17,6 +17,7 @@ class Config:
     ada = False
     system = '1D_Leach'
     rst = None
+    output_period = 10
 
     # FOR REMD
     temperatures = []
@@ -80,6 +81,9 @@ class Config:
             
             if 'primary_replica' in data:
                 Config.primary_replica = data['primary_replica']
+            
+            if 'output_period' in data:
+                Config.output_period = data['output_period']
 
         except FileNotFoundError:
             print("No such file {}".format(file_name))

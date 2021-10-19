@@ -16,14 +16,13 @@ class NoseHoover():
         self.Q = np.full(M, Units.kB * Config.T() / freq**2)
         self.Q[0] *= Config.num_particles
         self.w = np.array([0.2967324292201065,  0.2967324292201065, -0.1869297168804260, 0.2967324292201065, 0.2967324292201065])
-        # self.w = np.array([1])
-        print(self.w.sum())
 
 
-    def surr_energy(self):
-        total_surrounding_energy = (self.num_particles * self.xi[0] + self.xi[1:].sum()) * Units.kB * Config.T() 
-        total_surrounding_energy += 0.5 * np.sum(self.Q * self.vxi**2)
-        return total_surrounding_energy
+    def universe_energy(self, KE, PE):
+        total_universe_energy = (self.num_particles * self.xi[0] + self.xi[1:].sum()) * Units.kB * Config.T() 
+        total_universe_energy += 0.5 * np.sum(self.Q * self.vxi**2)
+        total_universe_energy += KE + PE
+        return total_universe_energy
 
     def step(self, m, v):
         
@@ -63,7 +62,7 @@ class NoseHoover():
 
                 # REVERSE
                 self.vxi[0] *= np.exp(-delta / 8 * self.vxi[1]) 
-                G_1 = (KE2 * SCALE * SCALE - N_f * Units.kB * T) / self.Q[0]
+                G_1 = (KE2 - N_f * Units.kB * T) / self.Q[0]
                 self.vxi[0] += (delta / 4) * G_1 
                 self.vxi[0] *= np.exp(-delta / 8 * self.vxi[1])
 

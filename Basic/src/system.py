@@ -83,8 +83,8 @@ class System:
         if x >= 0.75 and x <= 1.75:
             return -8 * np.pi * np.cos(2 * np.pi * x)
             
-        # if x >= 1.75:
-        return -(128) * (x - 1.75)
+        if x >= 1.75:
+            return -(128) * (x - 1.75)
                     
     @staticmethod
     def F(x):

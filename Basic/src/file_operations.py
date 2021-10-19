@@ -52,15 +52,15 @@ class FileOperations:
         self.scalar_file.write("{} {} {} {} {}".format(step, ke, pe, te, T))
         self.scalar_file.write("\n")
     
-    def write_surrounding_energy(self, surr_energy, step):
+    def write_hprime(self, universe_energy, step):
         if step % 10 != 0:
             return
-        if not hasattr(self, 'surr_file'):
-            surr_file_path = os.path.join(self.folder_path, "surr_file.txt")
-            self.surr_file = open(surr_file_path, "w+")
-            self.surr_file.write("Step Surrounding_Energy\n")
-        self.surr_file.write("{} {}".format(step, surr_energy))
-        self.surr_file.write("\n")
+        if not hasattr(self, 'universe_file'):
+            universe_path = os.path.join(self.folder_path, "univ_file.txt")
+            self.universe_file = open(universe_path, "w+")
+            self.universe_file.write("Step Bath_System_Energy \n")
+        self.universe_file.write("{} {}".format(step, universe_energy))
+        self.universe_file.write("\n")
     
     def write_rst(self, x, v, m):
         data_object = {'x' : x.flatten(), 'v' : v.flatten(), 'm' : m.flatten()}

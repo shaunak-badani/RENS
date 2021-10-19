@@ -163,20 +163,17 @@ class Analysis:
 
     def plot_hprime(self):
         file_path = self.file_path
-        surr_path = os.path.join(file_path, "surr_file.txt")
-        if not os.path.isfile(surr_path):
+        univ_path = os.path.join(file_path, "univ_file.txt")
+        if not os.path.isfile(univ_path):
             print("No surrounding energy has been noted during the simulation!\n")
             return
-        surr_energies = pd.read_csv(surr_path, sep = ' ')
-        scalars = self.__get_scalars()
-        h_prime = scalars["TE"].to_numpy() + surr_energies["Surrounding_Energy"].to_numpy()
+        univ_energies = pd.read_csv(univ_path, sep = ' ')
+        h_prime = univ_energies["Bath_System_Energy"].to_numpy()
         
         
         fig = plt.figure(figsize = (21, 7))
-        steps = surr_energies["Step"].to_numpy()
+        steps = univ_energies["Step"].to_numpy()
         plt.axhline(y = h_prime.mean(), color = 'red')
-        # plt.axhline(y = h_prime.mean() + 0.2, color = 'red')
-        # plt.axhline(y = h_prime.mean() - 0.2, color = 'red')
         plt.plot( steps, h_prime, linewidth = 6, color = 'blue', alpha = 0.5, label = "H' ")
         
         
@@ -194,11 +191,15 @@ class Analysis:
     def velocity_distribution(self):
         self.load_positions_and_velocities()
         particle_index = 0
-        vel_count, be = np.histogram(self.vel[:, particle_index], bins = 30)
+        vel_count, be = np.histogram(self.vel[:, particle_index], bins = 30, density = True)
         vel_count = vel_count.astype('float')
         vel_count /= vel_count.sum()
         vel_bins = (be[1:] + be[:-1])/2
-        plt.plot(vel_bins, vel_count)
+
+        m = 1
+        expected_dist = np.exp(-vel_bins**2 / (2 * m * Units.kB * Config.T()))
+        expected_dist /= expected_dist.sum()
+        plt.plot(vel_bins, expected_dist)
         plt.scatter(vel_bins, vel_count)
         for i in vel_bins:
             plt.axvline(x = i, linewidth = 0.1)

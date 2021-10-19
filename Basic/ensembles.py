@@ -69,8 +69,8 @@ class Ensemble:
             temp = self.sys.instantaneous_T(v)
             self.file_io.write_vectors(x, v, step_no)
             self.file_io.write_scalars(ke, pe, temp, step_no)
-            # if self.ensemble_type == 'nvt':
-            surr_energy = self.nht.surr_energy()
-            self.file_io.write_surrounding_energy(surr_energy, step_no)
+            if self.ensemble_type == 'nvt' or self.ensemble_type == 'remd':
+                univ_energy = self.nht.universe_energy(ke, pe)
+            self.file_io.write_hprime(univ_energy, step_no)
         self.file_io.write_rst(x, v, self.sys.m)
         del(self.file_io)

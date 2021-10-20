@@ -298,23 +298,19 @@ class Analysis:
             self.load_positions_and_velocities()
             self.file_path = root_dir
             
-        root_dir = self.file_path
-        self.file_path = os.path.join(self.file_path, str(Config.primary_replica))
-        self.file_path = root_dir
         particle_no = 0
-        
-        pos = self.pos
-
-        probs, bin_edges = np.histogram(self.pos[:, particle_no], bins = 50, density = True)
+        linspace = np.linspace(-2, 2.25, 1000)
+        probs, bin_edges = np.histogram(self.pos[:, particle_no], bins = 100, density = True)
         coords = (bin_edges[1:] + bin_edges[:-1]) / 2
 
-        U = np.array([pot_energy(i) for i in coords])
+        U = np.array([pot_energy(i) for i in linspace])
         Config.replica_id = Config.primary_replica
         expected_prob_dist = np.exp(-U / (Config.T() * Units.kB))
-
-        plt.plot(coords, expected_prob_dist, color = 'green')
-        plt.xlabel("Position")
-        plt.ylabel("Probability density")
+        plt.figure(figsize = (5, 4))
+        plt.plot(linspace, expected_prob_dist, color = 'green')
+        plt.xlabel(r'$x$', fontsize = 15)
+        axy = plt.ylabel(r'$\rho (x)$', fontsize = 15)
+        axy.set_rotation(0)
 
         plt.scatter(coords, probs, s = 20, color='purple')
 

@@ -300,20 +300,23 @@ class Analysis:
             
         particle_no = 0
         linspace = np.linspace(-2, 2.25, 1000)
-        probs, bin_edges = np.histogram(self.pos[:, particle_no], bins = 100, density = True)
+        probs, bin_edges = np.histogram(self.pos[:, particle_no], bins = 500, density = True)
         coords = (bin_edges[1:] + bin_edges[:-1]) / 2
 
         U = np.array([pot_energy(i) for i in linspace])
+        beta = 1 / (Config.T() * Units.kB)
+        Z = integrate.quad(lambda x: np.exp(-beta * pot_energy(x)), linspace.min(), linspace.max())[0]
+
         Config.replica_id = Config.primary_replica
-        expected_prob_dist = np.exp(-U / (Config.T() * Units.kB))
+        expected_prob_dist = (1 / Z) * np.exp(-beta * U)
         plt.figure(figsize = (5, 4))
-        plt.plot(linspace, expected_prob_dist, color = 'green')
+        plt.plot(linspace, expected_prob_dist, color = 'green', label = 'Expected Prob density')
         plt.xlabel(r'$x$', fontsize = 15)
         axy = plt.ylabel(r'$\rho (x)$', fontsize = 15)
         axy.set_rotation(0)
 
-        plt.scatter(coords, probs, s = 20, color='purple')
-
+        plt.scatter(coords, probs, s = 10, color='purple', label = 'MD Simulatiion Prob density')
+        plt.legend()
         im_path = os.path.join(self.images_path, "Prob_dist.png")
         plt.savefig(im_path)
         plt.close()

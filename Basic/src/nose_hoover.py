@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 import math
 from .units import Units
 from .system import System
@@ -16,6 +17,12 @@ class NoseHoover():
         self.Q = np.full(M, Units.kB * Config.T() / freq**2)
         self.Q[0] *= Config.num_particles
         self.w = np.array([0.2967324292201065,  0.2967324292201065, -0.1869297168804260, 0.2967324292201065, 0.2967324292201065])
+
+        if Config.rst:
+            df = pd.read_csv(Config.rst, sep = ' ')
+            self.xi = df['xi'].dropna().to_numpy()
+            self.vxi = df['vxi'].dropna().to_numpy()
+            self.M = self.xi.shape[0]
 
 
     def universe_energy(self, KE, PE):

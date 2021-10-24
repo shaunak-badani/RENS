@@ -14,6 +14,7 @@ class FileOperations:
         self.folder_path = folder_path
         self.share_dir = Config.share_dir
         self.ada = Config.ada
+        
         os.system("mkdir -p {}".format(folder_path))
         
         # Defining File objects
@@ -29,7 +30,7 @@ class FileOperations:
         self.vel_file = open(vel_file, file_mode)
 
         self.scalar_file = open(scalar_file, file_mode)
-        if first_time:
+        if first_time and not Config.restart:
             self.scalar_file.write("Step KE PE TE T")
             self.scalar_file.write("\n")
 
@@ -64,10 +65,12 @@ class FileOperations:
         self.universe_file.write("{} {}".format(step, universe_energy))
         self.universe_file.write("\n")
     
-    def write_rst(self, x, v, m):
-        data_object = {'x' : x.flatten(), 'v' : v.flatten(), 'm' : m.flatten()}
+    def write_rst(self, x, v, m, xi, vxi, step):
+        data_object = {'x' : x.flatten(), 'v' : v.flatten(), 'm' : m.flatten(), 'xi' : xi, 'vxi' : vxi, 'step' : step}
+        dict_df = pd.DataFrame({ key:pd.Series(value) for key, value in data_object.items() })
         rst_path = os.path.join(self.folder_path, "end.rst")
-        pd.DataFrame(data = data_object).to_csv(rst_path, sep = ' ', header = True, index = False)
+
+        dict_df.to_csv(rst_path, sep = ' ', header = True, index = False)
 
 
     def __del__(self):
@@ -91,14 +94,14 @@ class FileOperations:
 
 class FileOperationsREMD(FileOperations):
 
-    def __init__(self):
+    def __init__(self, first_time = True):
         from mpi4py import MPI
         comm = MPI.COMM_WORLD
         rank = comm.Get_rank()
         
         root_path = Config.run_name
         Config.run_name += "/{}".format(str(Config.replica_id))
-        super().__init__(Config.output_period)
+        super().__init__(first_time)
         Config.run_name = root_path
         self.remd_file = os.path.join(Config.files, root_path, "exchanges.txt")
         if rank == 0:

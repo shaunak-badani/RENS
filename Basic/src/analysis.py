@@ -239,13 +239,7 @@ class Analysis:
         well_counts /= well_counts.sum()
         colors = ['r', 'g', 'b', 'm']
         markers=["+", "x", "o", "s"]
-
-        probs, bin_edges = np.histogram(self.pos[:, particle_no], bins = 40)
-        probs = probs.astype('float')
-        probs /= probs.sum()
-
-        delta_x = bin_edges[1] - bin_edges[0]
-        well_counts *= (1  / (boltzmann_integrand * well_counts.max()))
+        print(well_counts)
         boltzmann_integrand /= boltzmann_integrand.sum()
 
 
@@ -294,6 +288,7 @@ class Analysis:
     def plot_prob_distribution(self, pot_energy, temperature, primary_replica):
         if not hasattr(self, 'pos'):
             root_dir = self.file_path
+            print(Config.primary_replica)
             self.file_path = os.path.join(self.file_path, str(Config.primary_replica))
             self.load_positions_and_velocities()
             self.file_path = root_dir
@@ -318,6 +313,7 @@ class Analysis:
         plt.scatter(coords, probs, s = 10, color='purple', label = 'MD Simulatiion Prob density')
         plt.legend()
         im_path = os.path.join(self.images_path, "Prob_dist.png")
+        
         plt.savefig(im_path)
         plt.close()
 

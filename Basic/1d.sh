@@ -4,7 +4,7 @@
 #SBATCH -n 8
 #SBATCH --gres=gpu:1
 #SBATCH --mem-per-cpu=2048
-#SBATCH --time=2-00:00:00
+#SBATCH --time=4-00:00:00
 #SBATCH --mail-type=NONE
 #SBATCH --output=1d_slurm.out
 
@@ -24,6 +24,6 @@ unset __conda_setup
 # <<< conda initialize <<<
 
 conda activate MD
-mpirun -np 2 python3 main.py -c remd.json
+mpirun -np 2 python3 main.py -c remd_3e8.json
 
 

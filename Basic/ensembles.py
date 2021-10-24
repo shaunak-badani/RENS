@@ -11,20 +11,28 @@ from src.nose_hoover import NoseHoover
 from src.minimizer import Minimizer
 
 import numpy as np
+import pandas as pd
 import os
 
 class Ensemble:
     
     def __init__(self):
+        self.starting_step = 0
+        if Config.rst:
+            df = pd.read_csv(Config.rst, sep = ' ')
+            self.starting_step = int(df['step'].to_numpy()[0]) + 1
+
+        first_time = (self.starting_step == 0)
+        if Config.run_type == 'remd':
+            self.file_io = FileOperationsREMD(first_time = first_time)
+        else:
+            self.file_io = FileOperations(first_time = first_time)
+        
         self.sys = System()
         if Config.system == 'free_particle':
             self.sys = FreeParticleSystem()
         elif Config.system == 'LJ':
             self.sys = LJ()
-        if Config.run_type == 'remd':
-            self.file_io = FileOperationsREMD()
-        else:
-            self.file_io = FileOperations()
         
         self.stepper = VelocityVerletIntegrator()
         self.ensemble_type = Config.run_type
@@ -39,13 +47,12 @@ class Ensemble:
             self.minimizer = Minimizer(1e-2)
     
     def run_simulation(self):
-        for step_no in range(self.num_steps):
+        for step_no in range(self.starting_step, self.num_steps):
             if self.ensemble_type == 'nve':
                 x, v = self.stepper.step(self.sys, step_no)
             elif self.ensemble_type == 'nvt':
                 v = self.nht.step(self.sys.m, self.sys.v)
                 x, v = self.stepper.step(self.sys, step_no, v = v)
-                KE = self.sys.K(v)
                 v = self.nht.step(self.sys.m, v)
             elif self.ensemble_type == 'minimize':
                 x = self.minimizer.step(self.sys)
@@ -57,7 +64,6 @@ class Ensemble:
                 exchange = self.remd_integrator.step(self.sys.U(self.sys.x), step_no, self.file_io)
                 v = self.nht.step(self.sys.m, self.sys.v)
                 x, v = self.stepper.step(self.sys, step_no, v = v)
-                KE = self.sys.K(v)
                 v = self.nht.step(self.sys.m, v)
             else:
                 print("Use nve or nvt as run_type!")
@@ -72,5 +78,5 @@ class Ensemble:
             if self.ensemble_type == 'nvt' or self.ensemble_type == 'remd':
                 univ_energy = self.nht.universe_energy(ke, pe)
             self.file_io.write_hprime(univ_energy, step_no)
-        self.file_io.write_rst(x, v, self.sys.m)
+        self.file_io.write_rst(self.sys.x, self.sys.v, self.sys.m, self.nht.xi, self.nht.vxi, self.num_steps - 1)
         del(self.file_io)

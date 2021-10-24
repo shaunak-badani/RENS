@@ -18,9 +18,11 @@ class Config:
     system = '1D_Leach'
     rst = None
     output_period = 10
+    restart = False
 
     # FOR REMD
     temperatures = []
+    rsts = []
     primary_replica = 0
     replica_id = MPI.COMM_WORLD.Get_rank()
 
@@ -74,6 +76,11 @@ class Config:
             if 'rst' in data:
                 Config.rst = data['rst']
 
+            if 'rsts' in data:
+                comm = MPI.COMM_WORLD
+                rank = comm.Get_rank()
+                Config.rst = data['rsts'][rank]
+
             Config.run_name = os.path.splitext(file_name)[0]
 
             if not Config.ada:
@@ -84,6 +91,9 @@ class Config:
             
             if 'output_period' in data:
                 Config.output_period = data['output_period']
+
+            if 'restart' in data:
+                Config.restart = data['restart']
 
         except FileNotFoundError:
             print("No such file {}".format(file_name))

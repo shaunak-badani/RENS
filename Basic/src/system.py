@@ -3,6 +3,7 @@ from .units import Units
 import numpy as np
 import random
 import math
+import os
 import pandas as pd
 from .config import Config
 
@@ -23,21 +24,21 @@ class System:
         self.v = v * fs 
         
 
-    def __init__(self):
+    def __init__(self, file_io = None):
         N = Config.num_particles
         self.x = np.random.normal(0, 1.0, size = (N, 1))
         self.m = np.full(N, 1) # kg / mol
         self.__init_velocities()
 
-
         if Config.rst:
-            df = pd.read_csv(cfg.rst, sep = ' ')
-            self.x = df['x'].to_numpy().reshape(-1, 1)
+            df = pd.read_csv(Config.rst, sep = ' ')
+            self.x = df['x'].dropna().to_numpy().reshape(-1, 1)
             N = self.x.shape[0]
-            self.v = df['v'].to_numpy().reshape(-1, 1)
-            self.m = df['m'].to_numpy().reshape(-1, 1)
+            self.v = df['v'].dropna().to_numpy().reshape(-1, 1)
+            self.m = df['m'].dropna().to_numpy().reshape(-1, 1)
             self.N = N
-            cfg.num_particles = N
+            Config.num_particles = N
+        
         
     def pot_energy(self, x):
         if x < -1.25:

@@ -54,7 +54,7 @@ class System:
             return 4 * (1 + np.sin(2 * np.pi * x))
                     
         # if x >= 1.75:
-        return 64 * ((x - 1.75) ** 2)
+        return 8 * (np.pi**2) * ((x - 1.75) ** 2)
 
     def U(self, x):
         reduced_x = x.flatten()
@@ -85,7 +85,7 @@ class System:
             return -8 * np.pi * np.cos(2 * np.pi * x)
             
         if x >= 1.75:
-            return -(128) * (x - 1.75)
+            return (-16 * (np.pi)**2) * (x - 1.75)
                     
     @staticmethod
     def F(x):

@@ -23,8 +23,10 @@ if Config.run_type == 'remd':
     an = Analysis()
     an.initialize_bins([-np.inf, -0.75, 0.25, 1.25, np.inf])
     an.plot_prob_distribution(System().pot_energy, Config.T(), Config.primary_replica)
+    an.plot_probs(System().pot_energy, Config.T(), Config.primary_replica)
     path = an.file_path
-    replicas = [d for d in os.listdir(path) if os.path.isdir(os.path.join(path, d))]
+    # replicas = [d for d in os.listdir(path) if os.path.isdir(os.path.join(path, d)) and]
+    replicas = [0, 1]
     for replica in replicas:
         root_path = Config.run_name
         Config.run_name += "/{}".format(str(replica))

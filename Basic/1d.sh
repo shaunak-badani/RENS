@@ -24,6 +24,4 @@ unset __conda_setup
 # <<< conda initialize <<<
 
 conda activate MD
-mpirun -np 2 python3 main.py -c remd_3e8.json
-
-
+mpirun -np 2 python3 main.py -c remd_1e8.json

@@ -26,6 +26,9 @@ class Config:
     primary_replica = 0
     replica_id = MPI.COMM_WORLD.Get_rank()
 
+    # FOR RENS
+    tau = 1.0
+
     def T():
         if len(Config.temperatures) > 0:
             t = Config.temperatures[Config.replica_id]
@@ -33,6 +36,7 @@ class Config:
             t = Config.temperature
         t *= (Units.epsilon / Units.kB)
         return t
+    
     
 
     @staticmethod
@@ -94,6 +98,9 @@ class Config:
 
             if 'restart' in data:
                 Config.restart = data['restart']
+
+            if 'tau' in data:
+                Config.tau = data['tau']
 
         except FileNotFoundError:
             print("No such file {}".format(file_name))

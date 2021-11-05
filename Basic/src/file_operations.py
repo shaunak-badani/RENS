@@ -132,3 +132,55 @@ class FileOperationsREMD(FileOperations):
         self.exchanges_file.write("{0} {1} {2} {3:1.3f}".format(src_rank, dest_rank, exchanged, acc_prob))
         self.exchanges_file.write("\n")
         self.exchanges_file.close()
+
+class FileOperationsRENS(FileOperationsREMD):
+
+    def __init__(self, first_time = True):
+        from mpi4py import MPI
+        comm = MPI.COMM_WORLD
+        rank = comm.Get_rank()
+        
+        root_path = Config.run_name
+        super().__init__(first_time)
+        self.remd_file = os.path.join(Config.files, root_path, "exchanges.txt")
+        self.exchanges_pandas = pd.DataFrame(columns = ["Step","Src","Dest","Exchanged","Prob","W","W_A","W_B"])
+
+        # if rank == 0:
+            # self.exchanges_file = open(self.remd_file, "w")
+            # self.exchanges_file.write("Step Src Dest Exchanged Prob W W_A W_B")
+            # self.exchanges_file.write("\n")
+            # self.exchanges_file.close()
+
+    def write_vectors(self, x, v, step, mode):
+        if step % self.output_period != 0:
+            return
+        str_x = ' '.join([str(i) for i in x.flatten()])
+        self.pos_file.write("{} {} {}".format(step, str_x, mode))
+        self.pos_file.write("\n")
+        
+        str_v = ' '.join([str(i) for i in v.flatten()])
+        self.vel_file.write("{} {} {}".format(step, str_v, mode))
+        self.vel_file.write("\n")
+
+    def write_exchanges(self, arr):
+
+        temp_exchanges = pd.DataFrame(columns = ["Step","Src","Dest","Exchanged","Prob","W","W_A","W_B"])
+        temp_exchanges = temp_exchanges.append(pd.DataFrame([arr], columns=["Step","Src","Dest","Exchanged","Prob","W","W_A","W_B"]), ignore_index = True)
+        self.exchanges_pandas = self.exchanges_pandas.append(temp_exchanges, ignore_index = True)
+
+        # self.exchanges_file.write("{0} {1} {2} {3:1.3f}".format(src_rank, dest_rank, exchanged, acc_prob))
+        # self.exchanges_file.write(" {0:1.3f} {1:1.3f} {2:1.3f}".format(w, w_a, w_b))
+
+        
+        # self.exchanges_file.write("\n")
+        # self.exchanges_file.close()
+    
+    def __del__(self):
+        super().__del__()
+
+        from mpi4py import MPI
+        comm = MPI.COMM_WORLD
+        rank = comm.Get_rank()
+        if rank == 0:
+            self.exchanges_pandas.to_csv(self.remd_file, index = False)
+        

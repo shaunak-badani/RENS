@@ -87,6 +87,9 @@ class Config:
 
             Config.run_name = os.path.splitext(file_name)[0]
 
+            if 'run_name' in data:
+                Config.run_name = data['run_name']
+
             if not Config.ada:
                 Config.files = "../../runs"
             

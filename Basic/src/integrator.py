@@ -144,7 +144,6 @@ class RENSIntegrator(REMDIntegrator):
         self.T_A = Config.T()
         self.x0 = x
         self.v0 = v
-        self.w = 0
 
         self.x_prev = x
         self.v_prev = v
@@ -166,11 +165,18 @@ class RENSIntegrator(REMDIntegrator):
                 self.comm.send(Config.T(), dest = peer_rank, tag = 2)
 
 
+    def lamda(self):
+        # Linear protocol
+        # returns lambda, der_lamdba
+        return (self.t / self.tau), (1 / self.tau)
+
+        # Step like protocol - 2nd paper
+
     def T_lambda(self):
-        lamda = self.t / self.tau
+        l, _ = self.lamda()
         T_A = self.T_A
         T_B = self.T_B
-        return T_A + lamda * (T_B - T_A)
+        return T_A + l * (T_B - T_A)
 
     def attempt(self, x, v):
         if self.rank % 2 == 0:
@@ -199,36 +205,38 @@ class RENSIntegrator(REMDIntegrator):
         m = sys.m
 
         if self.t >= self.tau:
-            exchange = self.determine_exchange(step, file_io)
+            exchange = self.determine_exchange(step, sys, file_io)
             self.mode = 0
             if not exchange:
                 return self.x0, self.v0
+            return x, v
 
-        U = sys.U
         K = sys.K
-        z =  (self.T_B - self.T_A) /  (2 * self.T_lambda() * self.tau)
+        _, l_der = self.lamda()
+        z =  (self.T_B - self.T_A) * l_der /  (2 * self.T_lambda())
         v = v * np.exp(z * self.dt / 2) + F(x) * (np.exp(z * self.dt / 2) - 1) / (z * m)
         x = x + v * self.dt
         v = v * np.exp(z * self.dt / 2) + F(x) * (np.exp(z * self.dt / 2) - 1) / (z * m)
         self.t += self.dt
 
 
-        h_prev = (sys.K(self.v_prev) + sys.U(self.x_prev)) / (Config.T() * Units.kB)
-        h_cur = (sys.K(v) + sys.U(x)) / (Config.T() * Units.kB)
-        self.w += (h_cur - h_prev)
-        self.x_prev = x
-        self.v_prev = v
-
-        
         return x, v
 
-    def determine_exchange(self, step, file_io):
+    def determine_exchange(self, step, sys, file_io):
         if self.rank % 2 == 0:
             peer_rank = self.rank + 1
         else:
             peer_rank = self.rank - 1
 
-        w_a = self.w
+        x = sys.x
+        v = sys.v
+        U = sys.U
+        K = sys.K
+
+        h_b_x = (sys.K(v) + sys.U(x)) / (self.T_B * Units.kB)
+        h_a_x = (sys.K(self.v0) + sys.U(self.x0)) / (self.T_A * Units.kB)
+
+        w_a = h_b_x - h_a_x
         exchange = False
         p_acc = 1.0
         arr = []
@@ -251,7 +259,7 @@ class RENSIntegrator(REMDIntegrator):
                 # file_io.write_exchanges()
             
             else:
-                self.comm.send(self.w, dest = peer_rank, tag = 1)
+                self.comm.send(w_a, dest = peer_rank, tag = 1)
                 arr = self.comm.recv(source = peer_rank, tag = 2)
         
         if self.rank % 2 != 0 and len(arr) > 0:

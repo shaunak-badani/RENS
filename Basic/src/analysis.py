@@ -20,7 +20,6 @@ class Analysis:
         #     primary_replica = cfg.primary_replica
         #     self.file_path = os.path.join(file_loc, str(primary_replica))
         self.file_path = os.path.join(file_loc, Config.run_name)
-        print(self.file_path)
         self.images_path = os.path.join(os.getcwd(), "analysis_plots", Config.run_name)
         os.system("mkdir -p {}".format(self.images_path))
 
@@ -106,20 +105,21 @@ class Analysis:
         plt.close()
 
     def plot_temperature(self, temp):
-        fig = plt.figure(figsize = (21, 7))
+        fig = plt.figure(figsize = (8, 8))
         scalars = self.__get_scalars()
         T = scalars["T"].to_numpy()
 
         
         steps = scalars["Step"].to_numpy()
-        plt.plot(steps, T, label = "Temperature", linewidth = 3, color = 'maroon', alpha = 0.5)
+        interval = 10
+        plt.plot(steps[::interval], T[::interval], label = "Temperature", lw = 1, color = 'maroon', alpha = 0.5)
         plt.axhline(y = temp, linewidth = 3, color = 'red')
 
-        plt.yticks(fontsize = 22.5)
-        plt.xticks(fontsize = 22.5)
+        plt.yticks(fontsize = 12)
+        plt.xticks(fontsize = 12)
         
-        plt.xlabel("No of Steps", fontsize = 30)
-        ylabel = plt.ylabel("Temp \n erature", labelpad = 60, fontsize = 30)
+        plt.xlabel("No of Steps", fontsize = 15)
+        ylabel = plt.ylabel("Temp \n erature", labelpad = 20, fontsize = 10)
         ylabel.set_rotation(0)
         t_path = os.path.join(self.images_path, "Temperature.png")
         plt.savefig(t_path)
@@ -143,8 +143,8 @@ class Analysis:
             l = line.split(' ')
             pos.append([float(i) for i in l])
         pos = np.array(pos)
-        # print(pos)
         steps = pos[:, 0]
+        particle_no = 0
         pos = pos[:, 1:]
 
         lines = vel_file_buffer.readlines()
@@ -171,18 +171,18 @@ class Analysis:
         h_prime = univ_energies["Bath_System_Energy"].to_numpy()
         
         
-        fig = plt.figure(figsize = (21, 7))
+        fig = plt.figure(figsize = (8, 8))
         steps = univ_energies["Step"].to_numpy()
         plt.axhline(y = h_prime.mean(), color = 'red')
         plt.plot( steps, h_prime, linewidth = 6, color = 'blue', alpha = 0.5, label = "H' ")
         
         
-        plt.yticks(fontsize = 22.5)
-        plt.xticks(fontsize = 22.5)
+        plt.yticks(fontsize = 12)
+        plt.xticks(fontsize = 12)
         
-        plt.xlabel("Steps", fontsize = 30)
+        plt.xlabel("Steps", fontsize = 15)
         plt.legend()
-        ylabel = plt.ylabel("H`", labelpad = 60, fontsize = 30)
+        ylabel = plt.ylabel("H`", labelpad = 100, fontsize = 15)
         ylabel.set_rotation(0)
         prime_path = os.path.join(self.images_path, "H_prime.png")
         plt.savefig(prime_path)
@@ -192,17 +192,21 @@ class Analysis:
         self.load_positions_and_velocities()
         particle_index = 0
         vel_count, be = np.histogram(self.vel[:, particle_index], bins = 30, density = True)
-        vel_count = vel_count.astype('float')
-        vel_count /= vel_count.sum()
+        # vel_count = vel_count.astype('float')
+        # vel_count /= vel_count.sum()
         vel_bins = (be[1:] + be[:-1])/2
 
         m = 1
-        expected_dist = np.exp(-vel_bins**2 / (2 * m * Units.kB * Config.T()))
-        expected_dist /= expected_dist.sum()
-        plt.plot(vel_bins, expected_dist)
-        plt.scatter(vel_bins, vel_count)
+        expected_dist = np.sqrt(m / (2 * np.pi * Units.kB * Config.T())) * np.exp(-vel_bins**2 / (2 * m * Units.kB * Config.T()))
+        plt.plot(vel_bins, expected_dist, label = "Maxwell distribution", color="orange")
+        plt.scatter(vel_bins, vel_count, label="Simulation velocity prob density", color="purple")
         for i in vel_bins:
             plt.axvline(x = i, linewidth = 0.1)
+        plt.legend()
+        plt.xlabel(r'$v_i$', fontsize = 15)
+        ax = plt.ylabel(r'$\rho (v_i)$', fontsize = 15)
+        ax.set_rotation(0)
+
         vel_dist = os.path.join(self.images_path, "vel_dist.png")
         plt.savefig(vel_dist)
          
@@ -240,7 +244,6 @@ class Analysis:
         well_counts /= well_counts.sum()
         colors = ['r', 'g', 'b', 'm']
         markers=["+", "x", "o", "s"]
-        print(well_counts)
         boltzmann_integrand /= boltzmann_integrand.sum()
 
 
@@ -324,7 +327,8 @@ class Analysis:
 
         fig = plt.figure(figsize = (20, 3))
 
-        plt.plot(self.steps, self.pos, lw = 0.5, color="black")
+        particle_index = 0
+        plt.plot(self.steps, self.pos[:, particle_index], lw = 0.5, color="black")
         plt.gca().spines["top"].set_visible(False)
         plt.gca().spines["right"].set_visible(False)
         plt.xticks([])

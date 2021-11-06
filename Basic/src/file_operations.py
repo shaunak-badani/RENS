@@ -176,11 +176,12 @@ class FileOperationsRENS(FileOperationsREMD):
         # self.exchanges_file.close()
     
     def __del__(self):
-        super().__del__()
 
         from mpi4py import MPI
         comm = MPI.COMM_WORLD
         rank = comm.Get_rank()
+        print(rank, self.exchanges_pandas)
         if rank == 0:
             self.exchanges_pandas.to_csv(self.remd_file, index = False)
+        super().__del__()
         

@@ -198,18 +198,50 @@ class RENSIntegrator(REMDIntegrator):
             self.mode = 1
             self.setup_rens(x, v)
 
+    def exchange_phase_space_vectors(self, sys):
+        if self.rank % 2 == 0:
+            peer_rank = self.rank + 1
+        else:
+            peer_rank = self.rank - 1
+
+        x = sys.x
+        v = sys.v
+
+        y_x = x
+        y_v = v
+
+        if peer_rank >= 0 and peer_rank < self.no_replicas:
+            if self.rank > peer_rank:
+                self.comm.send(x, dest = peer_rank, tag = 5)
+                self.comm.send(v, dest = peer_rank, tag = 6)
+
+                y_x = self.comm.recv(source = peer_rank, tag = 7)
+                y_v = self.comm.recv(source = peer_rank, tag = 8)
+            else:
+                y_x = self.comm.recv(source = peer_rank, tag = 5)
+                y_v = self.comm.recv(source = peer_rank, tag = 6)
+
+                self.comm.send(x, dest = peer_rank, tag = 7)
+                self.comm.send(v, dest = peer_rank, tag = 8)
+        
+        return y_x, y_v
+
     def step(self, sys, step, file_io):
         x = sys.x
         v = sys.v
         F = sys.F
         m = sys.m
 
-        if self.t >= self.tau:
+        l, _ = self.lamda()
+        if l >= 1:
             exchange = self.determine_exchange(step, sys, file_io)
             self.mode = 0
+            x_new, v_new = x[:], v[:]
             if not exchange:
-                return self.x0, self.v0
-            return x, v
+                x_new, v_new = self.x0, self.v0
+            else:
+                x_new, v_new = self.exchange_phase_space_vectors(sys)
+            return x_new, v_new
 
         K = sys.K
         _, l_der = self.lamda()
@@ -261,7 +293,7 @@ class RENSIntegrator(REMDIntegrator):
             else:
                 self.comm.send(w_a, dest = peer_rank, tag = 1)
                 arr = self.comm.recv(source = peer_rank, tag = 2)
-        
+                exchange = arr[3]
         if self.rank % 2 != 0 and len(arr) > 0:
             self.comm.send(arr, dest = 0, tag = 3)
 

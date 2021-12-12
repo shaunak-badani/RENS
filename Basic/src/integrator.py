@@ -149,6 +149,8 @@ class RENSIntegrator(REMDIntegrator):
         self.T_A = Config.T()
         self.w = - (sys.K(v) + sys.U(x)) / (Units.kB * self.T_A)
         self.t = 0
+        self.x0 = x
+        self.v0 = v
 
         if self.rank % 2 == 0:
             peer_rank = self.rank + 1

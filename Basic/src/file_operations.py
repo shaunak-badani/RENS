@@ -156,11 +156,11 @@ class FileOperationsRENS(FileOperationsREMD):
     def write_vectors(self, x, v, step, mode):
         if step % self.output_period != 0:
             return
-        str_x = ' '.join([str(i) for i in x.flatten()])
+        str_x = ' '.join(np.char.mod('%.3f', x.flatten()))
         self.pos_file.write("{} {} {}".format(step, str_x, mode))
         self.pos_file.write("\n")
-        
-        str_v = ' '.join([str(i) for i in v.flatten()])
+
+        str_v = ' '.join(np.char.mod('%.3f', v.flatten()))
         self.vel_file.write("{} {} {}".format(step, str_v, mode))
         self.vel_file.write("\n")
 

@@ -27,7 +27,7 @@ class System:
     def __init__(self, file_io = None):
         N = Config.num_particles
         self.x = np.random.normal(0, 1.0, size = (N, 1))
-        self.m = np.full(N, 1) # kg / mol
+        self.m = np.full((N, 1), 1)
         self.__init_velocities()
 
         if Config.rst:
@@ -89,14 +89,22 @@ class System:
                     
     @staticmethod
     def F(x):
-        forces = []
-        reduced_x = x.flatten()
+        f = np.zeros_like(x)
+        f[x < -1.25] = -8 * np.pi**2 * (x[x < -1.25] + 1.25)
         
-        for particle in reduced_x:
-            f = System.__force(particle)
-            forces.append(f)
-        F_x = np.array(forces).reshape(x.shape)
-        return F_x
+        ind = np.logical_and(x >= -1.25, x < -0.25)
+        f[ind] = -4 * np.pi * np.cos(2 * np.pi * x[ind])
+        
+        ind = np.logical_and(x >= -0.25, x < 0.75)
+        f[ind] = -6 * np.pi * np.cos(2 * np.pi * x[ind])
+        
+        ind = np.logical_and(x >= 0.75, x < 1.75)
+        f[ind] = -8 * np.pi * np.cos(2 * np.pi * x[ind])
+        
+        ind = (x >= 1.75)
+        f[ind] = -16 * np.pi**2 * (x[ind] - 1.75)
+        
+        return f
 
     def instantaneous_T(self, v):
         N = Config.num_particles

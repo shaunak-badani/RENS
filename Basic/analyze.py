@@ -36,11 +36,12 @@ if Config.run_type == 'remd':
         Config.run_name = root_path
     exit()
 
-an = Analysis()
-an.plot_energy()
-an.plot_temperature(Config.T())
-an.pos_x_time()
-an.velocity_distribution()
+else:
+    an = Analysis()
+    an.plot_energy()
+    an.plot_temperature(Config.T())
+    an.pos_x_time()
+    an.velocity_distribution()
 
 if Config.run_type == 'nvt':
     an.plot_hprime()

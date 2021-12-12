@@ -124,7 +124,7 @@ class REMDIntegrator(VelocityVerletIntegrator):
 
 class RENSIntegrator(REMDIntegrator):
 
-    def __init__(self):
+    def __init__(self, dt):
         super().__init__()
 
         
@@ -135,18 +135,19 @@ class RENSIntegrator(REMDIntegrator):
         if hasattr(Config, 'tau'):
             self.tau = Config.tau
 
+        self.nsteps = int(self.tau / dt)
+        self.current_step = 0
+        self.update_interval = 500
+        self.dt = dt
         # modes denote what kind of simulation is going on right now
         # mode = 0 => nvt
         # mode = 1 => work simulation
         self.mode = 0
-        
-    def setup_rens(self, x, v):
-        self.T_A = Config.T()
-        self.x0 = x
-        self.v0 = v
 
-        self.x_prev = x
-        self.v_prev = v
+        
+    def setup_rens(self, sys, x, v):
+        self.T_A = Config.T()
+        self.w = - (sys.K(v) + sys.U(x)) / (Units.kB * self.T_A)
         self.t = 0
 
         if self.rank % 2 == 0:
@@ -163,14 +164,14 @@ class RENSIntegrator(REMDIntegrator):
             else:
                 self.T_B = self.comm.recv(source = peer_rank, tag = 1)
                 self.comm.send(Config.T(), dest = peer_rank, tag = 2)
+        self.heat = (Config.num_particles / 2) * np.log(self.T_B / self.T_A)
 
 
     def lamda(self):
         # Linear protocol
-        # returns lambda, der_lamdba
-        return (self.t / self.tau), (1 / self.tau)
-
-        # Step like protocol - 2nd paper
+        # returns lambda, der_lamdba`   
+        t = self.current_step * self.dt
+        return (t / self.tau), (1 / self.tau)
 
     def T_lambda(self):
         l, _ = self.lamda()
@@ -178,7 +179,7 @@ class RENSIntegrator(REMDIntegrator):
         T_B = self.T_B
         return T_A + l * (T_B - T_A)
 
-    def attempt(self, x, v):
+    def attempt(self, sys, x, v):
         if self.rank % 2 == 0:
             peer_rank = self.rank + 1
         else:
@@ -187,7 +188,7 @@ class RENSIntegrator(REMDIntegrator):
         start_work_simulation = False
         if peer_rank >= 0 and peer_rank < self.no_replicas:
             if self.rank > peer_rank:
-                rand = np.random.random()
+                rand = 1e-34
                 if rand <= self.attempt_rate * self.dt:
                     start_work_simulation = True
                 self.comm.send(start_work_simulation, dest = peer_rank, tag = 1)
@@ -196,7 +197,7 @@ class RENSIntegrator(REMDIntegrator):
             
         if start_work_simulation:
             self.mode = 1
-            self.setup_rens(x, v)
+            self.setup_rens(sys, x, v)
 
     def exchange_phase_space_vectors(self, sys):
         if self.rank % 2 == 0:
@@ -225,6 +226,15 @@ class RENSIntegrator(REMDIntegrator):
                 self.comm.send(v, dest = peer_rank, tag = 8)
         
         return y_x, y_v
+    
+    def andersen_update(self, sys, v, T_lamda):
+        N, d = v.shape
+        ind = np.random.randint(0, N)
+        beta = 1 / (Units.kB * T_lamda)
+        sigma = 1 / np.sqrt(sys.m[ind] * beta)
+        v_new = v.copy()
+        v_new[ind] = np.random.normal(size = d, scale = sigma)
+        return v_new
 
     def step(self, sys, step, file_io):
         x = sys.x
@@ -233,25 +243,35 @@ class RENSIntegrator(REMDIntegrator):
         m = sys.m
 
         l, _ = self.lamda()
-        if l >= 1:
+        if self.current_step >= self.nsteps:
             exchange = self.determine_exchange(step, sys, file_io)
             self.mode = 0
+            self.w += (sys.K(v) + sys.U(x)) / (Units.kB * self.T_B)
+            self.w -= self.heat
             x_new, v_new = x[:], v[:]
             if not exchange:
                 x_new, v_new = self.x0, self.v0
             else:
                 x_new, v_new = self.exchange_phase_space_vectors(sys)
             return x_new, v_new
+    
 
-        K = sys.K
-        _, l_der = self.lamda()
-        z =  (self.T_B - self.T_A) * l_der /  (2 * self.T_lambda())
-        v = v * np.exp(z * self.dt / 2) + F(x) * (np.exp(z * self.dt / 2) - 1) / (z * m)
-        x = x + v * self.dt
-        v = v * np.exp(z * self.dt / 2) + F(x) * (np.exp(z * self.dt / 2) - 1) / (z * m)
-        self.t += self.dt
+        T_lamda = self.T_lambda()
+        if self.current_step != 0 and self.current_step % self.update_interval == 0:
+            v_new = self.andersen_update(sys, v, T_lamda)
+            h_new = (sys.K(v_new) + sys.U(x)) / (Units.kB * T_lamda)
+            h_old = (sys.K(v) + sys.U(x)) / (Units.kB * T_lamda)
 
-
+            self.heat += h_new - h_old
+            v = v_new
+        else:
+            K = sys.K
+            _, l_der = self.lamda()
+            z =  (self.T_B - self.T_A) * l_der /  (2 * T_lamda)
+            v = v * np.exp(z * self.dt / 2) + F(x) * (np.exp(z * self.dt / 2) - 1) / (z * m)
+            x = x + v * self.dt
+            v = v * np.exp(z * self.dt / 2) + F(x) * (np.exp(z * self.dt / 2) - 1) / (z * m)
+        self.current_step += 1
         return x, v
 
     def determine_exchange(self, step, sys, file_io):
@@ -265,10 +285,8 @@ class RENSIntegrator(REMDIntegrator):
         U = sys.U
         K = sys.K
 
-        h_b_x = (sys.K(v) + sys.U(x)) / (self.T_B * Units.kB)
-        h_a_x = (sys.K(self.v0) + sys.U(self.x0)) / (self.T_A * Units.kB)
 
-        w_a = h_b_x - h_a_x
+        w_a = self.w
         exchange = False
         p_acc = 1.0
         arr = []

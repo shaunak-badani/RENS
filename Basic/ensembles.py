@@ -48,7 +48,7 @@ class Ensemble:
             self.remd_integrator = REMDIntegrator()
         
         if Config.run_type == 'rens':
-            self.rens_integrator = RENSIntegrator()
+            self.rens_integrator = RENSIntegrator(self.stepper.dt)
 
 
         if Config.run_type == 'minimize':
@@ -74,11 +74,12 @@ class Ensemble:
                 x, v = self.stepper.step(self.sys, step_no, v = v)
                 v = self.nht.step(self.sys.m, v)
             elif self.ensemble_type == 'rens':
+                # print(self.rens_integrator.mode)
                 if self.rens_integrator.mode == 0:
                     v = self.nht.step(self.sys.m, self.sys.v)
                     x, v = self.stepper.step(self.sys, step_no, v = v)
                     v = self.nht.step(self.sys.m, v)
-                    self.rens_integrator.attempt(x, v)
+                    self.rens_integrator.attempt(self.sys, x, v)
                 else:
                     x, v = self.rens_integrator.step(self.sys, step_no, self.file_io)
             else:

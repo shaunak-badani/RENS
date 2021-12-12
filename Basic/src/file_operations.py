@@ -1,5 +1,6 @@
 import os
 import pandas as pd
+import numpy as np
 from .config import Config
 
 class FileOperations:
@@ -40,11 +41,12 @@ class FileOperations:
     def write_vectors(self, x, v, step):
         if step % self.output_period != 0:
             return
-        str_x = ' '.join([str(i) for i in x.flatten()])
+        str_x = ' '.join(np.char.mod('%.3f', x.flatten()))
+        # print(str_x)
         self.pos_file.write("{} {}".format(step, str_x))
         self.pos_file.write("\n")
         
-        str_v = ' '.join([str(i) for i in v.flatten()])
+        str_v = ' '.join(np.char.mod('%.3f', v.flatten()))
         self.vel_file.write("{} {}".format(step, str_v))
         self.vel_file.write("\n")
 

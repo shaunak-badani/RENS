@@ -57,11 +57,22 @@ class System:
         return 8 * (np.pi**2) * ((x - 1.75) ** 2)
 
     def U(self, x):
-        reduced_x = x.flatten()
-        pot = 0
-        for i in reduced_x:
-            pot += self.pot_energy(i)
-        return pot
+        u = np.zeros_like(x)
+        u[x < -1.25] = 4 * np.pi**2 * (x[x < -1.25] + 1.25)**2
+        
+        ind = np.logical_and(x >= -1.25, x < -0.25)
+        u[ind] = 2 * (1 + np.sin(2*np.pi*x[ind]))
+        
+        ind = np.logical_and(x >= -0.25, x < 0.75)
+        u[ind] = 3 * (1 + np.sin(2*np.pi*x[ind]))
+        
+        ind = np.logical_and(x >= 0.75, x < 1.75)
+        u[ind] = 4 * (1 + np.sin(2*np.pi*x[ind]))
+        
+        ind = (x >= 1.75)
+        u[ind] = 8 * (x[ind] - 1.75)**2
+        
+        return u.sum()
 
     def K(self, v):
         KE = 0.5 * np.sum(self.m * v**2)

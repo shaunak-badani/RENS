@@ -1,6 +1,6 @@
 {
-    "num_particles": 1,
-    "num_steps": 100000,
+    "num_particles": 10,
+    "num_steps": 50000,
     "output_period" : 1,
     "temperatures": [0.3, 2.0],
     "run_type": "rens",

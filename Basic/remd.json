@@ -1,4 +1,5 @@
 {
+    "num_particles" : 10,
     "num_steps": 10000,
     "run_type": "remd",
     "output_period" : 100,
@@ -6,5 +7,5 @@
     "analyze" : true,
     "system" : "1D_Leach",
     "primary_replica": 0,
-    "ada": true
+    "ada": false
 }

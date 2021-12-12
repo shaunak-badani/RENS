@@ -61,6 +61,7 @@ class Ensemble:
                 from mpi4py import MPI
                 comm = MPI.COMM_WORLD
                 rank = comm.Get_rank()
+
                 exchange = self.remd_integrator.step(self.sys.U(self.sys.x), step_no, self.file_io)
                 v = self.nht.step(self.sys.m, self.sys.v)
                 x, v = self.stepper.step(self.sys, step_no, v = v)

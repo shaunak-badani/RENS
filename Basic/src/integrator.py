@@ -136,7 +136,6 @@ class RENSIntegrator(REMDIntegrator):
             self.tau = Config.tau
 
         self.nsteps = int(self.tau / dt)
-        self.current_step = 0
         self.update_interval = 500
         self.dt = dt
         # modes denote what kind of simulation is going on right now
@@ -152,6 +151,8 @@ class RENSIntegrator(REMDIntegrator):
         self.t = 0
         self.x0 = x
         self.v0 = v
+        self.current_step = 0
+
 
         if self.rank % 2 == 0:
             peer_rank = self.rank + 1
@@ -173,7 +174,7 @@ class RENSIntegrator(REMDIntegrator):
 
     def lamda(self):
         # Linear protocol
-        # returns lambda, der_lamdba`   
+        # returns lambda, der_lamdba   
         t = self.current_step * self.dt
         return (t / self.tau), (1 / self.tau)
 

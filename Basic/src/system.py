@@ -21,14 +21,33 @@ class System:
         v = np.random.random(size = (N, 1)) - 0.5
         sumv2 = np.sum(self.m * v**2)
         fs = np.sqrt((N * Units.kB * T) / sumv2)
+
+        # Sampling from maxwell boltzmann distribution
+        beta = 1 / (Config.T() * Units.kB)
+        sigma = 1 / np.sqrt(self.m * beta)
+        v = np.random.normal(size = (N, 1), scale = sigma)
+        fs = 1
         self.v = v * fs 
+
+    def __init_positions(self):
+        N = Config.num_particles
+        beta = 1 / (Units.kB * Config.T())
+        sigma_p = 1 / np.sqrt(beta)
+        linsp = np.linspace(-2, 2.25, 10000)
+        u = np.array([self.U(i) for i in linsp])
+        prob = np.exp(- beta * u)
+        prob /= prob.sum()
+
+        x = np.random.choice(linsp, size = (N, 1), p = prob)
+        self.x = x
         
 
     def __init__(self, file_io = None):
         N = Config.num_particles
-        self.x = np.random.normal(0, 1.0, size = (N, 1))
         self.m = np.full((N, 1), 1)
+        self.__init_positions()
         self.__init_velocities()
+
 
         if Config.rst:
             df = pd.read_csv(Config.rst, sep = ' ')

@@ -148,6 +148,7 @@ class RENSIntegrator(REMDIntegrator):
     def setup_rens(self, sys, x, v):
         self.T_A = Config.T()
         self.w = - (sys.K(v) + sys.U(x)) / (Units.kB * self.T_A)
+
         self.t = 0
         self.x0 = x
         self.v0 = v
@@ -156,6 +157,8 @@ class RENSIntegrator(REMDIntegrator):
             peer_rank = self.rank + 1
         else:
             peer_rank = self.rank - 1
+        self.heat = 0
+
 
         ## Need to exchange temperatures between peer and self
         if peer_rank >= 0 and peer_rank < self.no_replicas:
@@ -166,7 +169,6 @@ class RENSIntegrator(REMDIntegrator):
             else:
                 self.T_B = self.comm.recv(source = peer_rank, tag = 1)
                 self.comm.send(Config.T(), dest = peer_rank, tag = 2)
-        self.heat = (Config.num_particles / 2) * np.log(self.T_B / self.T_A)
 
 
     def lamda(self):
@@ -246,10 +248,14 @@ class RENSIntegrator(REMDIntegrator):
 
         l, _ = self.lamda()
         if self.current_step >= self.nsteps:
-            exchange = self.determine_exchange(step, sys, file_io)
             self.mode = 0
+            self.heat += (Config.num_particles / 2) * np.log(self.T_B / self.T_A)
+
             self.w += (sys.K(v) + sys.U(x)) / (Units.kB * self.T_B)
             self.w -= self.heat
+
+            exchange = self.determine_exchange(step, sys, file_io)
+
             x_new, v_new = x[:], v[:]
             if not exchange:
                 x_new, v_new = self.x0, self.v0
@@ -259,11 +265,10 @@ class RENSIntegrator(REMDIntegrator):
     
 
         T_lamda = self.T_lambda()
-        if self.current_step != 0 and self.current_step % self.update_interval == 0:
+        if self.current_step % self.update_interval == 0:
             v_new = self.andersen_update(sys, v, T_lamda)
             h_new = (sys.K(v_new) + sys.U(x)) / (Units.kB * T_lamda)
             h_old = (sys.K(v) + sys.U(x)) / (Units.kB * T_lamda)
-
             self.heat += h_new - h_old
             v = v_new
         else:

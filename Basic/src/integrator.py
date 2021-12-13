@@ -190,7 +190,7 @@ class RENSIntegrator(REMDIntegrator):
         start_work_simulation = False
         if peer_rank >= 0 and peer_rank < self.no_replicas:
             if self.rank > peer_rank:
-                rand = 1e-34
+                rand = np.random.uniform()
                 if rand <= self.attempt_rate * self.dt:
                     start_work_simulation = True
                 self.comm.send(start_work_simulation, dest = peer_rank, tag = 1)

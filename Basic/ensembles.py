@@ -5,6 +5,7 @@ from src.file_operations import FileOperationsREMD
 from src.integrator import VelocityVerletIntegrator
 from src.integrator import REMDIntegrator
 from src.free_particle import FreeParticleSystem
+from src.muller import MullerSystem
 from src.leonnard_jones import LJ
 from src.analysis import Analysis
 from src.nose_hoover import NoseHoover
@@ -33,6 +34,8 @@ class Ensemble:
             self.sys = FreeParticleSystem()
         elif Config.system == 'LJ':
             self.sys = LJ()
+        elif Config.system == 'Muller':
+            self.sys = MullerSystem()
         
         self.stepper = VelocityVerletIntegrator()
         self.ensemble_type = Config.run_type
@@ -78,6 +81,6 @@ class Ensemble:
             self.file_io.write_scalars(ke, pe, temp, step_no)
             if self.ensemble_type == 'nvt' or self.ensemble_type == 'remd':
                 univ_energy = self.nht.universe_energy(ke, pe)
-            self.file_io.write_hprime(univ_energy, step_no)
+                self.file_io.write_hprime(univ_energy, step_no)
         self.file_io.write_rst(self.sys.x, self.sys.v, self.sys.m, self.nht.xi, self.nht.vxi, self.num_steps - 1)
         del(self.file_io)

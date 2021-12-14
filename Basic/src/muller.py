@@ -22,7 +22,10 @@ class MullerSystem(System):
 
     def __init__(self, file_io = None):
         N = Config.num_particles
-        self.x = np.random.normal(0, 1.0, size = (N, 2))
+        a = np.random.uniform(-2, 0.5, size = (N, 1))
+        b = np.random.uniform(0, 2, size = (N, 1))
+        self.x = np.hstack((a, b))
+        # self.x = np.random.normal(0, 1.0, size = (N, 2))
         self.m = np.full((N, 2), 1) # kg / mol
         self.__init_velocities()
 

@@ -1,4 +1,5 @@
 from src.system import System
+from src.harmonic_oscillator import HarmonicOscillator
 from src.config import Config
 from src.file_operations import FileOperations
 from src.file_operations import FileOperationsREMD
@@ -33,6 +34,8 @@ class Ensemble:
             self.sys = FreeParticleSystem()
         elif Config.system == 'LJ':
             self.sys = LJ()
+        elif Config.system == 'Harmonic':
+            self.sys = HarmonicOscillator()
         
         self.stepper = VelocityVerletIntegrator()
         self.ensemble_type = Config.run_type

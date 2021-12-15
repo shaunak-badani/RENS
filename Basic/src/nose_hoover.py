@@ -24,6 +24,15 @@ class NoseHoover():
             self.vxi = df['vxi'].dropna().to_numpy()
             self.M = self.xi.shape[0]
 
+        ## NVT Harmonic parameters
+        self.w = np.array([1])
+        self.M = 4
+        self.Q = np.ones(self.M)
+        self.xi = np.zeros(self.M)
+        self.vxi = np.array([1, -1, 1, -1])
+        ###
+
+
 
     def universe_energy(self, KE, PE):
         total_universe_energy = (self.num_particles * self.xi[0] + self.xi[1:].sum()) * Units.kB * Config.T() 

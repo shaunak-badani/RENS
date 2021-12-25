@@ -25,11 +25,11 @@ class NoseHoover():
             self.M = self.xi.shape[0]
 
         ## NVT Harmonic parameters
-        self.w = np.array([1])
-        self.M = 4
-        self.Q = np.ones(self.M)
-        self.xi = np.zeros(self.M)
-        self.vxi = np.array([1, -1, 1, -1])
+        # self.w = np.array([1])
+        # self.M = 4
+        # self.Q = np.ones(self.M)
+        # self.xi = np.zeros(self.M)
+        # self.vxi = np.array([1, -1, 1, -1], dtype = 'float')
         ###
 
 

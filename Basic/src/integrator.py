@@ -71,10 +71,12 @@ class REMDIntegrator(VelocityVerletIntegrator):
                 exchange = False
 
         self.comm.send(exchange, dest = peer_rank, tag = 4)
+        factor = 1
         if exchange:
             self.comm.send(Config.replica_id, dest = peer_rank, tag = 5)
+            factor = self.scale_velocity_factor(Config.T(), Config.temperatures[peer_id])
             Config.replica_id = peer_id
-        return exchange, metropolis
+        return exchange, metropolis, factor
         
 
     def __rex_exchange_as_follower(self, energy, peer_rank):
@@ -83,16 +85,18 @@ class REMDIntegrator(VelocityVerletIntegrator):
         self.comm.send(Config.T(), dest = peer_rank, tag = 3)
 
         exchange = self.comm.recv(source = peer_rank, tag = 4)
+        factor = 1
         if exchange:
             peer_id = self.comm.recv(source = peer_rank, tag = 5)
+            factor = self.scale_velocity_factor(Config.T(), Config.temperatures[peer_id])
+
             Config.replica_id = peer_id
         
-        return exchange, 0.69
+        return exchange, 0.69, factor
 
     
     def step(self, energy, step_no, file_io):
-        if step_no % self.exchange_period != 0:
-            return
+        
         
         if self.rank % 2 == 0:
             peer_rank = self.rank + 1
@@ -103,21 +107,20 @@ class REMDIntegrator(VelocityVerletIntegrator):
         exchange = False
         if peer_rank >= 0 and peer_rank < self.no_replicas:
             if self.rank > peer_rank:
-                exchange, acc_prob = self.__rex_exchange_as_leader(energy, peer_rank)
+                exchange, acc_prob, factor = self.__rex_exchange_as_leader(energy, peer_rank)
                 file_io.declare_step(step_no)
                 file_io.write_exchanges(self.rank, peer_rank, exchange, acc_prob)
                 
             else:
-                exchange, _ = self.__rex_exchange_as_follower(energy, peer_rank)
+                exchange, _, factor = self.__rex_exchange_as_follower(energy, peer_rank)
             if exchange:
                 file_io.update_files()
-        return exchange
+        return exchange, factor
 
         
     
-    # def rescale_velocities(self, v, sys, cfg):
+    def scale_velocity_factor(self, T_old, T_new):
         
-    #     # Rescale velocities
-    #     T_current = sys.instantaneous_T(v)
-    #     v_new = v * (cfg.temperature / T_current)
-    #     return v_new
+        # Rescale velocities
+        # T_current = sys.instantaneous_T(v)
+        return np.sqrt(T_new / T_old)

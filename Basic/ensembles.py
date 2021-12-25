@@ -18,60 +18,116 @@ import os
 class Ensemble:
     
     def __init__(self):
-        self.starting_step = 0
+        starting_step = 0
         if Config.rst:
             df = pd.read_csv(Config.rst, sep = ' ')
-            self.starting_step = int(df['step'].to_numpy()[0]) + 1
+            starting_step = int(df['step'].to_numpy()[0]) + 1
 
-        first_time = (self.starting_step == 0)
+        first_time = (starting_step == 0)
         if Config.run_type == 'remd':
             self.file_io = FileOperationsREMD(first_time = first_time)
         else:
             self.file_io = FileOperations(first_time = first_time)
         
-        self.sys = System()
+        sys = System()
         if Config.system == 'free_particle':
-            self.sys = FreeParticleSystem()
+            sys = FreeParticleSystem()
         elif Config.system == 'LJ':
-            self.sys = LJ()
+            sys = LJ()
         elif Config.system == 'Harmonic':
-            self.sys = HarmonicOscillator()
-        
-        self.stepper = VelocityVerletIntegrator()
-        self.ensemble_type = Config.run_type
-        self.num_steps = Config.num_steps
+            sys = HarmonicOscillator()
 
-        self.nht = NoseHoover(self.stepper.dt)
+        nsteps = Config.num_steps
 
-        if Config.run_type == 'remd':
-            self.remd_integrator = REMDIntegrator()
+        if Config.run_type == 'nve':
+            self.ensemble = NVE_Ensemble(sys, nsteps, starting_step, first_time)
+
+        if Config.run_type == 'nvt':
+            self.ensemble = NVT_Ensemble(sys, nsteps, starting_step, first_time)
 
         if Config.run_type == 'minimize':
-            self.minimizer = Minimizer(1e-2)
+            self.ensemble = MinimizerEnsemble(sys, nsteps, starting_step, first_time)
+
+        if Config.run_type == 'remd':
+            self.ensemble = REMD_Ensemble(sys, nsteps, starting_step, first_time)
+        # self.ensemble_type = Config.run_type
+
+        # self.nht = NoseHoover(self.stepper.dt)
+
+        # if Config.run_type == 'remd':
+        #     self.remd_integrator = REMDIntegrator()
+
+        # if Config.run_type == 'minimize':
+        #     self.minimizer = Minimizer(1e-2)
+        
+        
+        # self.stepper = VelocityVerletIntegrator()
+        # self.ensemble_type = Config.run_type
+        # self.num_steps = Config.num_steps
+
+        # self.nht = NoseHoover(self.stepper.dt)
+
+        # if Config.run_type == 'remd':
+        #     self.remd_integrator = REMDIntegrator()
+
+        # if Config.run_type == 'minimize':
+        #     self.minimizer = Minimizer(1e-2)
     
     def run_simulation(self):
-        for step_no in range(self.starting_step, self.num_steps):
-            if self.ensemble_type == 'nve':
-                x, v = self.stepper.step(self.sys, step_no)
-            elif self.ensemble_type == 'nvt':
-                v = self.nht.step(self.sys.m, self.sys.v)
-                x, v = self.stepper.step(self.sys, step_no, v = v)
-                v = self.nht.step(self.sys.m, v)
-            elif self.ensemble_type == 'minimize':
-                x = self.minimizer.step(self.sys)
-                v = self.sys.v
-            elif self.ensemble_type == 'remd':
-                from mpi4py import MPI
-                comm = MPI.COMM_WORLD
-                rank = comm.Get_rank()
+        self.ensemble.run_simulation()
+        # for step_no in range(self.starting_step, self.num_steps):
+        #     if self.ensemble_type == 'nve':
+        #         x, v = self.stepper.step(self.sys, step_no)
+        #     elif self.ensemble_type == 'nvt':
+        #         v = self.nht.step(self.sys.m, self.sys.v)
+        #         x, v = self.stepper.step(self.sys, step_no, v = v)
+        #         v = self.nht.step(self.sys.m, v)
+        #     elif self.ensemble_type == 'minimize':
+        #         x = self.minimizer.step(self.sys)
+        #         v = self.sys.v
+        #     elif self.ensemble_type == 'remd':
+        #         from mpi4py import MPI
+        #         comm = MPI.COMM_WORLD
+        #         rank = comm.Get_rank()
 
-                exchange = self.remd_integrator.step(self.sys.U(self.sys.x), step_no, self.file_io)
-                v = self.nht.step(self.sys.m, self.sys.v)
-                x, v = self.stepper.step(self.sys, step_no, v = v)
-                v = self.nht.step(self.sys.m, v)
-            else:
-                print("Use nve or nvt as run_type!")
-                break
+        #         v = self.sys.v
+        #         if step_no % self.remd_integrator.exchange_period == 0:
+        #             exchange, factor = self.remd_integrator.step(self.sys.U(self.sys.x), step_no, self.file_io)
+        #             v = self.sys.v * factor
+        #         v = self.nht.step(self.sys.m, v)
+        #         x, v = self.stepper.step(self.sys, step_no, v = v)
+        #         v = self.nht.step(self.sys.m, v)
+        #     else:
+        #         print("Use nve or nvt as run_type!")
+        #         break
+        #     pe = self.sys.U(x)
+        #     self.sys.set_x(x)
+        #     self.sys.set_v(v)
+        #     ke = self.sys.K(v)
+        #     temp = self.sys.instantaneous_T(v)
+        #     self.file_io.write_vectors(x, v, step_no)
+        #     self.file_io.write_scalars(ke, pe, temp, step_no)
+        #     if self.ensemble_type == 'nvt' or self.ensemble_type == 'remd':
+        #         univ_energy = self.nht.universe_energy(ke, pe)
+        #     self.file_io.write_hprime(univ_energy, step_no)
+        # self.file_io.write_rst(self.sys.x, self.sys.v, self.sys.m, self.nht.xi, self.nht.vxi, self.num_steps - 1)
+        # del(self.file_io)
+
+
+class NVE_Ensemble:
+
+    def __init__(self, sys, num_steps, starting_step, first_time):
+        self.sys = sys
+
+        self.stepper = VelocityVerletIntegrator()
+        self.num_steps = num_steps
+        self.starting_step = starting_step
+        self.file_io = FileOperations(first_time = first_time)
+
+    def run_simulation(self):
+        for step_no in range(self.starting_step, self.num_steps):
+            x, v = self.stepper.step(self.sys, step_no)
+
             pe = self.sys.U(x)
             self.sys.set_x(x)
             self.sys.set_v(v)
@@ -79,8 +135,95 @@ class Ensemble:
             temp = self.sys.instantaneous_T(v)
             self.file_io.write_vectors(x, v, step_no)
             self.file_io.write_scalars(ke, pe, temp, step_no)
-            if self.ensemble_type == 'nvt' or self.ensemble_type == 'remd':
-                univ_energy = self.nht.universe_energy(ke, pe)
-            self.file_io.write_hprime(univ_energy, step_no)
-        self.file_io.write_rst(self.sys.x, self.sys.v, self.sys.m, self.nht.xi, self.nht.vxi, self.num_steps - 1)
+
+        self.file_io.write_rst(self.sys.x, self.sys.v, self.sys.m, self.num_steps - 1)
         del(self.file_io)
+
+class MinimizerEnsemble(NVE_Ensemble):
+
+    def __init__(self, *args):
+        super().__init__(*args)
+        self.minimizer = Minimizer(1e-2)
+
+    def run_simulation(self):
+        for step_no in range(self.starting_step, self.num_steps):
+            x = self.minimizer.step(self.sys)
+            v = self.sys.v
+            pe = self.sys.U(x)
+            self.sys.set_x(x)
+            self.sys.set_v(v)
+            ke = self.sys.K(v)
+            temp = self.sys.instantaneous_T(v)
+            self.file_io.write_vectors(x, v, step_no)
+            self.file_io.write_scalars(ke, pe, temp, step_no)
+
+        self.file_io.write_rst(self.sys.x, self.sys.v, self.sys.m, self.num_steps - 1)
+        del(self.file_io)
+        
+
+class NVT_Ensemble(NVE_Ensemble):
+
+    def __init__(self, *args):
+        super().__init__(*args)
+        
+        self.nht = NoseHoover(self.stepper.dt)
+
+    def run_simulation(self):
+        for step_no in range(self.starting_step, self.num_steps):
+            v = self.nht.step(self.sys.m, self.sys.v)
+            x, v = self.stepper.step(self.sys, step_no, v = v)
+            v = self.nht.step(self.sys.m, v)
+
+            pe = self.sys.U(x)
+            self.sys.set_x(x)
+            self.sys.set_v(v)
+            ke = self.sys.K(v)
+            temp = self.sys.instantaneous_T(v)
+            self.file_io.write_vectors(x, v, step_no)
+            self.file_io.write_scalars(ke, pe, temp, step_no)
+
+            univ_energy = self.nht.universe_energy(ke, pe)
+            self.file_io.write_hprime(univ_energy, step_no)
+
+        self.file_io.write_rst(self.sys.x, self.sys.v, self.sys.m, self.num_steps - 1, xi = self.nht.xi, vxi = self.nht.vxi)
+        del(self.file_io)
+
+class REMD_Ensemble(NVT_Ensemble):
+
+    def __init__(self, sys, num_steps, starting_step, first_time):
+        self.sys = sys
+        self.file_io = FileOperationsREMD(first_time = first_time)
+        self.num_steps = num_steps
+        self.starting_step = starting_step
+        self.stepper = VelocityVerletIntegrator()
+        self.nht = NoseHoover(self.stepper.dt)
+        self.remd_integrator = REMDIntegrator()
+
+    def run_simulation(self):
+        for step_no in range(self.starting_step, self.num_steps):
+            from mpi4py import MPI
+            comm = MPI.COMM_WORLD
+            rank = comm.Get_rank()
+
+            v = self.sys.v
+            if step_no % self.remd_integrator.exchange_period == 0:
+                exchange, factor = self.remd_integrator.step(self.sys.U(self.sys.x), step_no, self.file_io)
+                v = self.sys.v * factor
+            v = self.nht.step(self.sys.m, v)
+            x, v = self.stepper.step(self.sys, step_no, v = v)
+            v = self.nht.step(self.sys.m, v)
+
+            pe = self.sys.U(x)
+            self.sys.set_x(x)
+            self.sys.set_v(v)
+            ke = self.sys.K(v)
+            temp = self.sys.instantaneous_T(v)
+            self.file_io.write_vectors(x, v, step_no)
+            self.file_io.write_scalars(ke, pe, temp, step_no)
+
+            univ_energy = self.nht.universe_energy(ke, pe)
+            self.file_io.write_hprime(univ_energy, step_no)
+
+        self.file_io.write_rst(self.sys.x, self.sys.v, self.sys.m, self.num_steps - 1, xi = self.nht.xi, vxi = self.nht.vxi)
+        del(self.file_io)
+        

@@ -6,6 +6,7 @@ from src.file_operations import FileOperationsREMD
 from src.integrator import VelocityVerletIntegrator
 from src.integrator import REMDIntegrator
 from src.free_particle import FreeParticleSystem
+from src.muller import MullerSystem
 from src.leonnard_jones import LJ
 from src.analysis import Analysis
 from src.nose_hoover import NoseHoover
@@ -36,6 +37,8 @@ class Ensemble:
             sys = LJ()
         elif Config.system == 'Harmonic':
             sys = HarmonicOscillator()
+        elif Config.system == 'Muller':
+            sys = MullerSystem()
 
         nsteps = Config.num_steps
 
@@ -50,69 +53,9 @@ class Ensemble:
 
         if Config.run_type == 'remd':
             self.ensemble = REMD_Ensemble(sys, nsteps, starting_step, first_time)
-        # self.ensemble_type = Config.run_type
-
-        # self.nht = NoseHoover(self.stepper.dt)
-
-        # if Config.run_type == 'remd':
-        #     self.remd_integrator = REMDIntegrator()
-
-        # if Config.run_type == 'minimize':
-        #     self.minimizer = Minimizer(1e-2)
         
-        
-        # self.stepper = VelocityVerletIntegrator()
-        # self.ensemble_type = Config.run_type
-        # self.num_steps = Config.num_steps
-
-        # self.nht = NoseHoover(self.stepper.dt)
-
-        # if Config.run_type == 'remd':
-        #     self.remd_integrator = REMDIntegrator()
-
-        # if Config.run_type == 'minimize':
-        #     self.minimizer = Minimizer(1e-2)
-    
     def run_simulation(self):
         self.ensemble.run_simulation()
-        # for step_no in range(self.starting_step, self.num_steps):
-        #     if self.ensemble_type == 'nve':
-        #         x, v = self.stepper.step(self.sys, step_no)
-        #     elif self.ensemble_type == 'nvt':
-        #         v = self.nht.step(self.sys.m, self.sys.v)
-        #         x, v = self.stepper.step(self.sys, step_no, v = v)
-        #         v = self.nht.step(self.sys.m, v)
-        #     elif self.ensemble_type == 'minimize':
-        #         x = self.minimizer.step(self.sys)
-        #         v = self.sys.v
-        #     elif self.ensemble_type == 'remd':
-        #         from mpi4py import MPI
-        #         comm = MPI.COMM_WORLD
-        #         rank = comm.Get_rank()
-
-        #         v = self.sys.v
-        #         if step_no % self.remd_integrator.exchange_period == 0:
-        #             exchange, factor = self.remd_integrator.step(self.sys.U(self.sys.x), step_no, self.file_io)
-        #             v = self.sys.v * factor
-        #         v = self.nht.step(self.sys.m, v)
-        #         x, v = self.stepper.step(self.sys, step_no, v = v)
-        #         v = self.nht.step(self.sys.m, v)
-        #     else:
-        #         print("Use nve or nvt as run_type!")
-        #         break
-        #     pe = self.sys.U(x)
-        #     self.sys.set_x(x)
-        #     self.sys.set_v(v)
-        #     ke = self.sys.K(v)
-        #     temp = self.sys.instantaneous_T(v)
-        #     self.file_io.write_vectors(x, v, step_no)
-        #     self.file_io.write_scalars(ke, pe, temp, step_no)
-        #     if self.ensemble_type == 'nvt' or self.ensemble_type == 'remd':
-        #         univ_energy = self.nht.universe_energy(ke, pe)
-        #     self.file_io.write_hprime(univ_energy, step_no)
-        # self.file_io.write_rst(self.sys.x, self.sys.v, self.sys.m, self.nht.xi, self.nht.vxi, self.num_steps - 1)
-        # del(self.file_io)
-
 
 class NVE_Ensemble:
 
@@ -226,4 +169,3 @@ class REMD_Ensemble(NVT_Ensemble):
 
         self.file_io.write_rst(self.sys.x, self.sys.v, self.sys.m, self.num_steps - 1, xi = self.nht.xi, vxi = self.nht.vxi)
         del(self.file_io)
-        

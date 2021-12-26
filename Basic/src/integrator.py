@@ -116,19 +116,27 @@ class REMDIntegrator(VelocityVerletIntegrator):
         if peer_rank >= 0 and peer_rank < self.no_replicas:
             if self.rank > peer_rank:
                 exchange, acc_prob, factor = self.__rex_exchange_as_leader(energy, peer_rank)
-                file_io.declare_step(step_no)
-                file_io.write_exchanges(self.rank, peer_rank, exchange, acc_prob)
+                arr = [step_no, self.rank, peer_rank, exchange, acc_prob]
+                self.comm.send(arr, dest = peer_rank, tag = 10)
+                # file_io.declare_step(step_no)
+                # file_io.write_exchanges(self.rank, peer_rank, exchange, acc_prob)
                 
             else:
                 exchange, _, factor = self.__rex_exchange_as_follower(energy, peer_rank)
+                arr = self.comm.recv(source = peer_rank, tag = 10)
             
-            exchange = True
             if exchange:
                 scale_factor = self.scale_velocity_factor(Config.T(), Config.temperatures[peer_rank])
                 v *= scale_factor
                 y_x, y_v = self.swap_positions(x, v, peer_rank, self.rank > peer_rank)
 
-                # file_io.update_files()
+        if self.rank % 2 != 0 and len(arr) > 0:
+            self.comm.send(arr, dest = 0, tag = 3)
+
+        if self.rank == 0:
+            for i in range(1, self.no_replicas + 1, 2):
+                arr = self.comm.recv(source = i, tag = 3)
+                file_io.write_exchanges(arr)
         return y_x, y_v
 
         

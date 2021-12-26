@@ -109,34 +109,52 @@ class FileOperationsREMD(FileOperations):
         super().__init__(first_time)
         Config.run_name = root_path
         self.remd_file = os.path.join(Config.files, root_path, "exchanges.txt")
+
+        self.exchanges_pandas = pd.DataFrame(columns = ["Step","Src","Dest","Exchanged","Prob"])
+        # if rank == 0:
+        #     self.exchanges_file = open(self.remd_file, "w")
+        #     self.exchanges_file.write("Step Src Dest Exchanged Prob")
+        #     self.exchanges_file.write("\n")
+        #     self.exchanges_file.close()
+        
+    
+    # def declare_step(self, step_no):
+    #     self.exchanges_file = open(self.remd_file, "a+")
+    #     self.exchanges_file.write("{} ".format(step_no))
+    #     self.exchanges_file.close()
+    
+    # def update_files(self):
+    #     self.pos_file.close()
+    #     self.vel_file.close()
+    #     self.scalar_file.close()
+
+    #     root_path = Config.run_name
+    #     Config.run_name += "/{}".format(str(Config.replica_id))
+    #     super().__init__(first_time = False)
+    #     Config.run_name = root_path
+        
+
+    
+
+    def write_exchanges(self, arr):
+        temp_exchanges = pd.DataFrame(columns = ["Step","Src","Dest","Exchanged","Prob"])
+        temp_exchanges = temp_exchanges.append(pd.DataFrame([arr], columns=["Step","Src","Dest","Exchanged","Prob"]), ignore_index = True)
+        self.exchanges_pandas = self.exchanges_pandas.append(temp_exchanges, ignore_index = True)
+
+    def wrap_up(self):
+
+        from mpi4py import MPI
+        comm = MPI.COMM_WORLD
+        rank = comm.Get_rank()
         if rank == 0:
-            self.exchanges_file = open(self.remd_file, "w")
-            self.exchanges_file.write("Step Src Dest Exchanged Prob")
-            self.exchanges_file.write("\n")
-            self.exchanges_file.close()
-        
-    
-    def declare_step(self, step_no):
-        self.exchanges_file = open(self.remd_file, "a+")
-        self.exchanges_file.write("{} ".format(step_no))
-        self.exchanges_file.close()
-    
-    def update_files(self):
-        self.pos_file.close()
-        self.vel_file.close()
-        self.scalar_file.close()
+            self.exchanges_pandas.to_csv(self.remd_file, index = False)
+        super().__del__()
 
-        root_path = Config.run_name
-        Config.run_name += "/{}".format(str(Config.replica_id))
-        super().__init__(first_time = False)
-        Config.run_name = root_path
-        
-
-    def write_exchanges(self, src_rank, dest_rank, exchanged, acc_prob):
-        self.exchanges_file = open(self.remd_file, "a+")
-        self.exchanges_file.write("{0} {1} {2} {3:1.3f}".format(src_rank, dest_rank, exchanged, acc_prob))
-        self.exchanges_file.write("\n")
-        self.exchanges_file.close()
+    # def write_exchanges(self, src_rank, dest_rank, exchanged, acc_prob):
+    #     self.exchanges_file = open(self.remd_file, "a+")
+    #     self.exchanges_file.write("{0} {1} {2} {3:1.3f}".format(src_rank, dest_rank, exchanged, acc_prob))
+    #     self.exchanges_file.write("\n")
+    #     self.exchanges_file.close()
 
 class FileOperationsRENS(FileOperationsREMD):
 

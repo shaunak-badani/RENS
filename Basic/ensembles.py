@@ -151,10 +151,8 @@ class REMD_Ensemble(NVT_Ensemble):
             v = self.sys.v
             x = self.sys.x
             if step_no != 0 and step_no % self.remd_integrator.exchange_period == 0:
-                # print(x, v)
                 y_x, y_v = self.remd_integrator.step(x, v, self.sys.U(self.sys.x), step_no, self.file_io)
                 x, v = y_x, y_v
-                # print(y_x, y_v)
             else: 
                 v = self.nht.step(self.sys.m, v)
                 x, v = self.stepper.step(self.sys, step_no, v = v)
@@ -172,4 +170,4 @@ class REMD_Ensemble(NVT_Ensemble):
             self.file_io.write_hprime(univ_energy, step_no)
 
         self.file_io.write_rst(self.sys.x, self.sys.v, self.sys.m, self.num_steps - 1, xi = self.nht.xi, vxi = self.nht.vxi)
-        del(self.file_io)
+        self.file_io.wrap_up()

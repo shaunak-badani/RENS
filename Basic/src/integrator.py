@@ -247,9 +247,8 @@ class RENSIntegrator(REMDIntegrator):
         F = sys.F
         m = sys.m
 
-        l, _ = self.lamda()
         if self.nsteps == 0:
-            v *= np.sqrt(T_B / T_A)
+            v *= np.sqrt(self.T_B / self.T_A)
 
         if self.current_step >= self.nsteps:
             self.mode = 0

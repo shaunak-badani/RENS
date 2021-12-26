@@ -149,12 +149,16 @@ class REMD_Ensemble(NVT_Ensemble):
             rank = comm.Get_rank()
 
             v = self.sys.v
-            if step_no % self.remd_integrator.exchange_period == 0:
-                exchange, factor = self.remd_integrator.step(self.sys.U(self.sys.x), step_no, self.file_io)
-                v = self.sys.v * factor
-            v = self.nht.step(self.sys.m, v)
-            x, v = self.stepper.step(self.sys, step_no, v = v)
-            v = self.nht.step(self.sys.m, v)
+            x = self.sys.x
+            if step_no != 0 and step_no % self.remd_integrator.exchange_period == 0:
+                # print(x, v)
+                y_x, y_v = self.remd_integrator.step(x, v, self.sys.U(self.sys.x), step_no, self.file_io)
+                x, v = y_x, y_v
+                # print(y_x, y_v)
+            else: 
+                v = self.nht.step(self.sys.m, v)
+                x, v = self.stepper.step(self.sys, step_no, v = v)
+                v = self.nht.step(self.sys.m, v)
 
             pe = self.sys.U(x)
             self.sys.set_x(x)

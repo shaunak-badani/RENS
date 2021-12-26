@@ -7,7 +7,7 @@ from src.system import System
 from src.config import Config
 from src.file_operations import FileOperations
 from src.integrator import VelocityVerletIntegrator
-from src.analysis import Analysis
+# from src.analysis import Analysis
 from ensembles import Ensemble
 
 

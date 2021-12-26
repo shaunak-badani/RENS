@@ -10,7 +10,6 @@ from src.integrator import RENSIntegrator
 from src.free_particle import FreeParticleSystem
 from src.muller import MullerSystem
 from src.leonnard_jones import LJ
-# from src.analysis import Analysis
 from src.nose_hoover import NoseHoover
 from src.minimizer import Minimizer
 
@@ -197,7 +196,6 @@ class RENS_Ensemble(REMD_Ensemble):
         self.rens_integrator = RENSIntegrator(self.stepper.dt)
 
     def run_simulation(self):
-
         for step_no in range(self.starting_step, self.num_steps):
             if self.rens_integrator.mode == 0:
                 v = self.nht.step(self.sys.m, self.sys.v)
@@ -219,5 +217,5 @@ class RENS_Ensemble(REMD_Ensemble):
             self.file_io.write_hprime(univ_energy, step_no)
 
         self.file_io.write_rst(self.sys.x, self.sys.v, self.sys.m, self.num_steps - 1, xi = self.nht.xi, vxi = self.nht.vxi)
-        del(self.file_io)
+        # del(self.file_io)
         

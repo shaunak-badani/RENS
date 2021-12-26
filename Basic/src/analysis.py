@@ -350,3 +350,35 @@ class REMD_Analysis(NVE_Analysis):
         self.an.plot_probs(self.all_positions[Config.primary_replica], 0, System().pot_energy, Config.T(), Config.primary_replica)
         self.an.plot_free_energy(self.all_positions[Config.primary_replica], 0, System().pot_energy)
 
+class RENS_Analysis(REMD_Analysis):
+
+    def __init__(self):
+        self.an = Analysis()
+        self.all_positions = []
+        self.all_velocities = []
+        
+    def analyze(self):
+        self.an.initialize_bins([-np.inf, -0.75, 0.25, 1.25, np.inf])
+        root_dir = self.an.file_path
+
+        for index, t in enumerate(Config.temperatures):
+            self.an.file_path = os.path.join(self.an.file_path, str(index))
+            self.load_positions_and_velocities()
+            ind = (self.pos[:, -1] == 0)
+            pos = self.pos[ind, :-1]
+            vel = self.vel[ind, :-1]
+            steps = self.steps[ind]
+            self.all_positions.append(pos)
+            self.all_velocities.append(vel)
+            images_path = self.an.images_path + "/" + str(index)
+            if not os.path.isdir(images_path):
+                os.mkdir(images_path)
+            self.an.pos_x_time(pos, steps, images_path)
+            self.an.plot_temperature(Config.temperatures[index], images_path)
+            self.an.file_path = root_dir
+        delattr(self, 'pos')
+        delattr(self, 'vel')
+        self.an.plot_maxwell(self.all_positions[Config.primary_replica], 0, System().pot_energy, Config.T(), Config.primary_replica)
+        self.an.plot_probs(self.all_positions[Config.primary_replica], 0, System().pot_energy, Config.T(), Config.primary_replica)
+        self.an.plot_free_energy(self.all_positions[Config.primary_replica], 0, System().pot_energy)
+

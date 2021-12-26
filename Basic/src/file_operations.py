@@ -67,8 +67,11 @@ class FileOperations:
         self.universe_file.write("{} {}".format(step, universe_energy))
         self.universe_file.write("\n")
     
-    def write_rst(self, x, v, m, xi, vxi, step):
-        data_object = {'x' : x.flatten(), 'v' : v.flatten(), 'm' : m.flatten(), 'xi' : xi, 'vxi' : vxi, 'step' : step}
+    def write_rst(self, x, v, m, step, xi = None, vxi = None):
+        if xi is None and vxi is None:
+            data_object = {'x' : x.flatten(), 'v' : v.flatten(), 'm' : m.flatten(), 'step' : step}
+        else:
+            data_object = {'x' : x.flatten(), 'v' : v.flatten(), 'm' : m.flatten(), 'xi' : xi, 'vxi' : vxi, 'step' : step}
         dict_df = pd.DataFrame({ key:pd.Series(value) for key, value in data_object.items() })
         rst_path = os.path.join(self.folder_path, "end.rst")
 

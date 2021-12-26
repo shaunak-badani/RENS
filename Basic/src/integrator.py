@@ -71,10 +71,12 @@ class REMDIntegrator(VelocityVerletIntegrator):
                 exchange = False
 
         self.comm.send(exchange, dest = peer_rank, tag = 4)
+        factor = 1
         if exchange:
             self.comm.send(Config.replica_id, dest = peer_rank, tag = 5)
+            factor = self.scale_velocity_factor(Config.T(), Config.temperatures[peer_id])
             Config.replica_id = peer_id
-        return exchange, metropolis
+        return exchange, metropolis, factor
         
 
     def __rex_exchange_as_follower(self, energy, peer_rank):
@@ -83,16 +85,18 @@ class REMDIntegrator(VelocityVerletIntegrator):
         self.comm.send(Config.T(), dest = peer_rank, tag = 3)
 
         exchange = self.comm.recv(source = peer_rank, tag = 4)
+        factor = 1
         if exchange:
             peer_id = self.comm.recv(source = peer_rank, tag = 5)
+            factor = self.scale_velocity_factor(Config.T(), Config.temperatures[peer_id])
+
             Config.replica_id = peer_id
         
-        return exchange, 0.69
+        return exchange, 0.69, factor
 
     
     def step(self, energy, step_no, file_io):
-        if step_no % self.exchange_period != 0:
-            return
+        
         
         if self.rank % 2 == 0:
             peer_rank = self.rank + 1
@@ -103,25 +107,21 @@ class REMDIntegrator(VelocityVerletIntegrator):
         exchange = False
         if peer_rank >= 0 and peer_rank < self.no_replicas:
             if self.rank > peer_rank:
-                exchange, acc_prob = self.__rex_exchange_as_leader(energy, peer_rank)
+                exchange, acc_prob, factor = self.__rex_exchange_as_leader(energy, peer_rank)
                 file_io.declare_step(step_no)
                 file_io.write_exchanges(self.rank, peer_rank, exchange, acc_prob)
                 
             else:
-                exchange, _ = self.__rex_exchange_as_follower(energy, peer_rank)
+                exchange, _, factor = self.__rex_exchange_as_follower(energy, peer_rank)
             if exchange:
                 file_io.update_files()
-        return exchange
+        return exchange, factor
 
         
     
-    # def rescale_velocities(self, v, sys, cfg):
-        
-    #     # Rescale velocities
-    #     T_current = sys.instantaneous_T(v)
-    #     v_new = v * (cfg.temperature / T_current)
-    #     return v_new
-
+    def scale_velocity_factor(self, T_old, T_new):
+        return np.sqrt(T_new / T_old)
+    
 class RENSIntegrator(REMDIntegrator):
 
     def __init__(self, dt):
@@ -248,6 +248,9 @@ class RENSIntegrator(REMDIntegrator):
         m = sys.m
 
         l, _ = self.lamda()
+        if self.nsteps == 0:
+            v *= np.sqrt(T_B / T_A)
+
         if self.current_step >= self.nsteps:
             self.mode = 0
             self.heat += (Config.num_particles / 2) * np.log(self.T_B / self.T_A)
@@ -329,32 +332,3 @@ class RENSIntegrator(REMDIntegrator):
                 file_io.write_exchanges(arr)
 
         return exchange
-
-    # def __rex_exchange_as_leader(self, self_energy, peer_rank):
-    #     yb = self.comm.recv(source = peer_rank, tag = 1)
-    #     peer_id = self.comm.recv(source = peer_rank, tag = 2)
-    #     peer_temp = self.comm.recv(source = peer_rank, tag = 3)
-
-    #     self_temp = Config.T()
-
-    #     beta_i = 1 / (Units.kB * self_temp)
-    #     beta_j = 1 / (Units.kB * peer_temp)
-
-    #     delta = (beta_i - beta_j) * (energy - self_energy)
-
-    #     exchange = True
-    #     metropolis = 1
-    #     if delta > 0:
-    #         metropolis = np.exp(-delta)
-    #         u_rand = np.random.uniform()
-
-    #         if u_rand >= metropolis:
-    #             exchange = False
-
-    #     self.comm.send(exchange, dest = peer_rank, tag = 4)
-    #     if exchange:
-    #         self.comm.send(Config.replica_id, dest = peer_rank, tag = 5)
-    #         Config.replica_id = peer_id
-    #     return exchange, metropolis
-            
-    

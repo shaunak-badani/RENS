@@ -205,9 +205,12 @@ class RENS_Ensemble(REMD_Ensemble):
             else:
                 x, v = self.rens_integrator.step(self.sys, step_no, self.file_io)
 
-            pe = self.sys.U(x)
             self.sys.set_x(x)
             self.sys.set_v(v)
+            if step_no % self.file_io.output_period != 0:
+                continue 
+                
+            pe = self.sys.U(x)
             ke = self.sys.K(v)
             temp = self.sys.instantaneous_T(v)
             self.file_io.write_vectors(x, v, step_no, self.rens_integrator.mode)

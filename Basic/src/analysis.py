@@ -37,7 +37,7 @@ class Analysis:
         ke_vals = ke
 
         tot_energy = scalars["TE"]
-        steps = scalars["Step"]
+        steps = scalars["Time"]
         
         energies_path = os.path.join(self.images_path, "energies")
         os.system('mkdir -p {}'.format(energies_path))
@@ -109,7 +109,7 @@ class Analysis:
         T = scalars["T"].to_numpy()
 
         
-        steps = scalars["Step"].to_numpy()
+        steps = scalars["Time"].to_numpy()
         interval = 10
         plt.plot(steps[::interval], T[::interval], label = "Temperature", lw = 1, color = 'maroon', alpha = 0.5)
         plt.axhline(y = temp, linewidth = 3, color = 'red')
@@ -356,6 +356,131 @@ class RENS_Analysis(REMD_Analysis):
         self.an = Analysis()
         self.all_positions = []
         self.all_velocities = []
+
+    def free_energy(self, N, T):
+        from scipy.integrate import quad
+        beta = 1 / (Units.kB * T)
+        pot_energy = System().pot_energy
+        Z_single_particle = quad(lambda x : np.exp(-beta * pot_energy(x)), -np.inf, np.inf)[0]
+        f = -N * np.log(Z_single_particle)
+        f -= (N/2) * np.log(2 * np.pi / beta)
+        return f
+
+    def plot_multiple_probs(self):
+
+
+        bins = [-np.inf, -0.75, 0.25, 1.25, np.inf]
+
+        from scipy.integrate import quad
+        beta = 1 / (Units.kB * Config.temperatures[Config.primary_replica])
+        boltzmann_integrand = np.empty(len(bins) - 1)
+        pot_energy = System().pot_energy
+        for i in range(1, 5):
+            boltzmann_integrand[i - 1] = quad(lambda x: np.exp(-beta * pot_energy(x)), bins[i-1], bins[i])[0]
+
+        boltzmann_integrand /= boltzmann_integrand.sum()
+        index = Config.primary_replica
+        pos = self.all_positions[index]
+        interval = 10000
+        for particle_no in range(pos.shape[1]):
+            images_path = os.path.join(self.an.images_path, "P_vs_t")
+            if not os.path.isdir(images_path):
+                os.mkdir(images_path)
+
+            h = interval
+            i = 0
+            l = []
+            t = []
+            while h < pos.shape[0]:
+                p, _ = np.histogram(pos[:h, particle_no], bins = bins)
+                p = p.astype('float')
+                p /= p.sum()
+                l.append(p)
+                i += 1
+                h += interval
+                
+                t.append(self.steps[min(self.steps.shape[0] - 1, h)])
+            l = np.array(l)
+            colors = ['r', 'g', 'b', 'm']
+            markers=["+", "x", "o", "s"]
+
+            for i in range(4):
+                plt.scatter(t, l[:, i], marker = markers[i], color=colors[i])
+                plt.axhline(y = boltzmann_integrand[i], color = colors[i])
+
+            plt.xlabel('Time (s)')
+            _ = plt.ylabel('Prob.')
+            _.set_rotation(0)
+            plt.savefig(os.path.join(images_path, str(particle_no) + ".png"))
+            plt.close()
+            
+
+    def plot_work_distribution(self, W_F, W_R, T_A, T_B):
+        fig = plt.figure(figsize = (8, 6))
+        p, be = np.histogram(W_F, bins = 50, density = True)
+        coords = (be[1:] + be[:-1])/2
+        plt.plot(coords, p, lw = 3, label = r'$\rho_F (w)$')
+
+        p, be = np.histogram(W_R, bins = 50, density = True)
+        coords = (be[1:] + be[:-1]) / 2
+        plt.plot(-coords, p, lw = 3, label = r'$\rho_R (-w)$')
+
+
+        f_A = self.free_energy(Config.num_particles, T_A)
+        f_B = self.free_energy(Config.num_particles, T_B)
+
+        free = f_B - f_A
+
+        plt.axvline(x = free, color = 'red', lw = 3, label = r'$\Delta F$')
+        plt.legend(loc = 'best', fontsize = 20)
+        plt.xlabel(r'$w$', fontsize = 15)
+        y = plt.ylabel(r'$\rho (w)$', fontsize = 20)
+        y.set_rotation(0)
+
+        im_path = os.path.join(self.an.images_path, "work.png")
+        plt.savefig(im_path)
+        plt.close()
+
+    def get_simulation_data(self):
+
+        # W_mean, p_acc
+        W_A = self.exchanges['W_A'].to_numpy()
+        W_B = self.exchanges['W_B'].to_numpy()
+        w = W_A + W_B
+        w_mean = w.mean()
+        p_acc = self.exchanges['Exchanged'].mean()
+
+        # X, f_sw
+        tau = Config.tau
+        dt = 1e-3
+        k = self.exchanges['Time'].to_numpy()
+        final_time = Config.num_steps * dt
+        ending_points = k - tau
+        ending_points = np.insert(ending_points, ending_points.size, final_time)
+        k = np.insert(k, 0, 0)
+        tau_eq = ending_points - k
+        tau_eq = tau_eq.mean()
+
+        X = tau / tau_eq
+        f_sw = X / (1 + X)
+
+        # t_c, t_star
+        def auto_corr(x, tau):
+            len_data = len(x[tau:])
+            mean = x.mean()
+            num = (x[:len_data] * x[tau:tau + len_data]).mean() - mean**2
+            var = (x**2).mean() - (mean)**2
+            return num / var
+
+        n_4t = np.sum(self.all_positions[Config.primary_replica] >= 1.25, axis = 1)
+        c_t = np.array([auto_corr(n_4t, i) for i in range(n_4t.size)])
+        t_c = c_t.sum()
+        t_star = (1 + X) * t_c
+
+        data_object = {'W_mean' : w_mean, 'p_acc' : p_acc, 'X' : X, 'f_sw' : f_sw, 't_star' : t_star}
+        dict_df = pd.DataFrame({ key:pd.Series(value) for key, value in data_object.items() })
+        dict_df
+        dict_df.to_csv(os.path.join(self.an.images_path, "run_summary.dat"), index = False)
         
     def analyze(self):
         self.an.initialize_bins([-np.inf, -0.75, 0.25, 1.25, np.inf])
@@ -380,5 +505,13 @@ class RENS_Analysis(REMD_Analysis):
         delattr(self, 'vel')
         self.an.plot_maxwell(self.all_positions[Config.primary_replica], 0, System().pot_energy, Config.T(), Config.primary_replica)
         self.an.plot_probs(self.all_positions[Config.primary_replica], 0, System().pot_energy, Config.T(), Config.primary_replica)
-        self.an.plot_free_energy(self.all_positions[Config.primary_replica], 0, System().pot_energy)
+        # self.an.plot_free_energy(self.all_positions[Config.primary_replica], 0, System().pot_energy)
+
+        self.exchanges = pd.read_csv(os.path.join(self.an.file_path, "exchanges.txt"), sep = ',')
+        T_A = Config.temperatures[self.exchanges['Src'][0]]
+        T_B = Config.temperatures[self.exchanges['Dest'][0]]
+        self.plot_work_distribution(self.exchanges['W_A'].to_numpy(), self.exchanges['W_B'].to_numpy(), T_A, T_B)
+        self.plot_multiple_probs()
+        # self.get_simulation_data()
+        
 

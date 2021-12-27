@@ -168,16 +168,7 @@ class REMD_Ensemble(NVT_Ensemble):
             ke = self.sys.K(v)
             temp = self.sys.instantaneous_T(v)
 
-            if Config.run_type == 'rens':
-                self.file_io.write_vectors(x, v, step_no, self.rens_integrator.mode)
-                
-                from mpi4py import MPI
-                comm = MPI.COMM_WORLD
-                rank = comm.Get_rank()
-            else:
-                self.file_io.write_vectors(x, v, step_no)
-            self.file_io.write_scalars(ke, pe, temp, step_no)
-
+            self.file_io.write_scalars(ke, pe, temp, step_no * self.stepper.dt)
             univ_energy = self.nht.universe_energy(ke, pe)
             self.file_io.write_hprime(univ_energy, step_no)
 
@@ -197,27 +188,28 @@ class RENS_Ensemble(REMD_Ensemble):
 
     def run_simulation(self):
         for step_no in range(self.starting_step, self.num_steps):
+            t = step_no * self.stepper.dt
             if self.rens_integrator.mode == 0:
                 v = self.nht.step(self.sys.m, self.sys.v)
                 x, v = self.stepper.step(self.sys, step_no, v = v)
                 v = self.nht.step(self.sys.m, v)
                 self.rens_integrator.attempt(self.sys, x, v)
             else:
-                x, v = self.rens_integrator.step(self.sys, step_no, self.file_io)
+                x, v = self.rens_integrator.step(self.sys, t, self.file_io)
 
             self.sys.set_x(x)
             self.sys.set_v(v)
             if step_no % self.file_io.output_period != 0:
                 continue 
-                
+
             pe = self.sys.U(x)
             ke = self.sys.K(v)
             temp = self.sys.instantaneous_T(v)
-            self.file_io.write_vectors(x, v, step_no, self.rens_integrator.mode)
-            self.file_io.write_scalars(ke, pe, temp, step_no)
+            self.file_io.write_vectors(x, v, t, self.rens_integrator.mode)
+            self.file_io.write_scalars(ke, pe, temp, t)
 
             univ_energy = self.nht.universe_energy(ke, pe)
-            self.file_io.write_hprime(univ_energy, step_no)
+            self.file_io.write_hprime(univ_energy, t)
 
         self.file_io.write_rst(self.sys.x, self.sys.v, self.sys.m, self.num_steps - 1, xi = self.nht.xi, vxi = self.nht.vxi)
         # del(self.file_io)

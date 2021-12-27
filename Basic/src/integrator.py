@@ -241,7 +241,7 @@ class RENSIntegrator(REMDIntegrator):
         v_new[ind] = np.random.normal(size = d, scale = sigma)
         return v_new
 
-    def step(self, sys, step, file_io):
+    def step(self, sys, timestep, file_io):
         x = sys.x
         v = sys.v
         F = sys.F
@@ -257,7 +257,7 @@ class RENSIntegrator(REMDIntegrator):
             self.w += (sys.K(v) + sys.U(x)) / (Units.kB * self.T_B)
             self.w -= self.heat
 
-            exchange = self.determine_exchange(step, sys, file_io)
+            exchange = self.determine_exchange(timestep, sys, file_io)
 
             x_new, v_new = x[:], v[:]
             if not exchange:
@@ -284,7 +284,7 @@ class RENSIntegrator(REMDIntegrator):
         self.current_step += 1
         return x, v
 
-    def determine_exchange(self, step, sys, file_io):
+    def determine_exchange(self, timestep, sys, file_io):
         if self.rank % 2 == 0:
             peer_rank = self.rank + 1
         else:
@@ -314,7 +314,7 @@ class RENSIntegrator(REMDIntegrator):
                     if rand <= p_acc:
                         exchange = True
 
-                arr = [step, self.rank, peer_rank, exchange, p_acc, w, w_a, w_b]
+                arr = [timestep, self.rank, peer_rank, exchange, p_acc, w, w_a, w_b]
                 self.comm.send(arr, dest = peer_rank, tag = 2)
                 # file_io.write_exchanges()
             

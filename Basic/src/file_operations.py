@@ -39,8 +39,7 @@ class FileOperations:
         
 
     def write_vectors(self, x, v, step):
-        if step % self.output_period != 0:
-            return
+        
         str_x = ' '.join(np.char.mod('%.3f', x.flatten()))
         # print(str_x)
         self.pos_file.write("{} {}".format(step, str_x))
@@ -51,15 +50,13 @@ class FileOperations:
         self.vel_file.write("\n")
 
     def write_scalars(self, ke, pe, T, step):
-        if step % self.output_period != 0:
-            return
+        
         te = pe + ke
         self.scalar_file.write("{} {} {} {} {}".format(step, ke, pe, te, T))
         self.scalar_file.write("\n")
     
     def write_hprime(self, universe_energy, step):
-        if step % self.output_period != 0:
-            return
+        
         if not hasattr(self, 'universe_file'):
             universe_path = os.path.join(self.folder_path, "univ_file.txt")
             self.universe_file = open(universe_path, "w+")
@@ -175,8 +172,6 @@ class FileOperationsRENS(FileOperationsREMD):
             # self.exchanges_file.close()
 
     def write_vectors(self, x, v, step, mode):
-        if step % self.output_period != 0:
-            return
         str_x = ' '.join([str(i) for i in x.flatten()])
         self.pos_file.write("{} {} {}".format(step, str_x, mode))
         self.pos_file.write("\n")

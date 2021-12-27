@@ -71,6 +71,11 @@ class NVE_Ensemble:
         for step_no in range(self.starting_step, self.num_steps):
             x, v = self.stepper.step(self.sys, step_no)
 
+            self.sys.set_x(x)
+            self.sys.set_v(v)
+            if step_no % self.file_io.output_period != 0:
+                continue
+
             pe = self.sys.U(x)
             self.sys.set_x(x)
             self.sys.set_v(v)
@@ -91,6 +96,11 @@ class MinimizerEnsemble(NVE_Ensemble):
     def run_simulation(self):
         for step_no in range(self.starting_step, self.num_steps):
             x = self.minimizer.step(self.sys)
+
+            self.sys.set_x(x)
+            if step_no % self.file_io.output_period != 0:
+                continue
+            
             v = self.sys.v
             pe = self.sys.U(x)
             self.sys.set_x(x)
@@ -117,9 +127,12 @@ class NVT_Ensemble(NVE_Ensemble):
             x, v = self.stepper.step(self.sys, step_no, v = v)
             v = self.nht.step(self.sys.m, v)
 
-            pe = self.sys.U(x)
             self.sys.set_x(x)
             self.sys.set_v(v)
+            if step_no % self.file_io.output_period != 0:
+                continue
+
+            pe = self.sys.U(x)
             ke = self.sys.K(v)
             temp = self.sys.instantaneous_T(v)
             self.file_io.write_vectors(x, v, step_no)
@@ -144,9 +157,6 @@ class REMD_Ensemble(NVT_Ensemble):
 
     def run_simulation(self):
         for step_no in range(self.starting_step, self.num_steps):
-            from mpi4py import MPI
-            comm = MPI.COMM_WORLD
-            rank = comm.Get_rank()
 
             v = self.sys.v
             x = self.sys.x
@@ -158,9 +168,12 @@ class REMD_Ensemble(NVT_Ensemble):
                 x, v = self.stepper.step(self.sys, step_no, v = v)
                 v = self.nht.step(self.sys.m, v)
 
-            pe = self.sys.U(x)
             self.sys.set_x(x)
             self.sys.set_v(v)
+            if step_no % self.file_io.output_period != 0:
+                continue
+
+            pe = self.sys.U(x)
             ke = self.sys.K(v)
             temp = self.sys.instantaneous_T(v)
             self.file_io.write_vectors(x, v, step_no)

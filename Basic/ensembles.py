@@ -10,6 +10,7 @@ from src.muller import MullerSystem
 from src.leonnard_jones import LJ
 from src.analysis import Analysis
 from src.nose_hoover import NoseHoover
+from src.langevin import LangevinThermostat
 from src.minimizer import Minimizer
 
 import numpy as np
@@ -119,13 +120,19 @@ class NVT_Ensemble(NVE_Ensemble):
     def __init__(self, *args):
         super().__init__(*args)
         
-        self.nht = NoseHoover(self.stepper.dt)
+        if Config.thermostat == 'nh':
+            self.nht = NoseHoover(self.stepper.dt)
+        elif Config.thermostat == 'langevin':
+            self.thermostat = LangevinThermostat(self.stepper.dt)
 
     def run_simulation(self):
         for step_no in range(self.starting_step, self.num_steps):
-            v = self.nht.step(self.sys.m, self.sys.v)
-            x, v = self.stepper.step(self.sys, step_no, v = v)
-            v = self.nht.step(self.sys.m, v)
+            if Config.thermostat == 'nh':
+                v = self.nht.step(self.sys.m, self.sys.v)
+                x, v = self.stepper.step(self.sys, step_no, v = v)
+                v = self.nht.step(self.sys.m, v)
+            else:
+                x, v = self.thermostat.step(self.sys.x, self.sys.v, self.sys.F, self.sys.m)
 
             self.sys.set_x(x)
             self.sys.set_v(v)
@@ -138,10 +145,14 @@ class NVT_Ensemble(NVE_Ensemble):
             self.file_io.write_vectors(x, v, step_no)
             self.file_io.write_scalars(ke, pe, temp, step_no)
 
-            univ_energy = self.nht.universe_energy(ke, pe)
-            self.file_io.write_hprime(univ_energy, step_no)
+            if Config.thermostat == 'nh':
+                univ_energy = self.nht.universe_energy(ke, pe)
+                self.file_io.write_hprime(univ_energy, step_no)
 
-        self.file_io.write_rst(self.sys.x, self.sys.v, self.sys.m, self.num_steps - 1, xi = self.nht.xi, vxi = self.nht.vxi)
+        if Config.thermostat == 'nh':
+            self.file_io.write_rst(self.sys.x, self.sys.v, self.sys.m, self.num_steps - 1, xi = self.nht.xi, vxi = self.nht.vxi)
+        else:
+            self.file_io.write_rst(self.sys.x, self.sys.v, self.sys.m, self.num_steps - 1)
         del(self.file_io)
 
 class REMD_Ensemble(NVT_Ensemble):
@@ -152,8 +163,13 @@ class REMD_Ensemble(NVT_Ensemble):
         self.num_steps = num_steps
         self.starting_step = starting_step
         self.stepper = VelocityVerletIntegrator()
-        self.nht = NoseHoover(self.stepper.dt)
         self.remd_integrator = REMDIntegrator()
+
+        if Config.thermostat == 'nh':
+            self.nht = NoseHoover(self.stepper.dt)
+        else:
+            self.thermostat = LangevinThermostat(self.stepper.dt)
+
 
     def run_simulation(self):
         for step_no in range(self.starting_step, self.num_steps):
@@ -164,9 +180,12 @@ class REMD_Ensemble(NVT_Ensemble):
                 y_x, y_v = self.remd_integrator.step(x, v, self.sys.U(self.sys.x), step_no, self.file_io)
                 x, v = y_x, y_v
             else: 
-                v = self.nht.step(self.sys.m, v)
-                x, v = self.stepper.step(self.sys, step_no, v = v)
-                v = self.nht.step(self.sys.m, v)
+                if Config.thermostat == 'nh':
+                    v = self.nht.step(self.sys.m, v)
+                    x, v = self.stepper.step(self.sys, step_no, v = v)
+                    v = self.nht.step(self.sys.m, v)
+                else:
+                    x, v = self.thermostat.step(self.sys.x, self.sys.v, self.sys.F, self.sys.m)
 
             self.sys.set_x(x)
             self.sys.set_v(v)
@@ -179,8 +198,12 @@ class REMD_Ensemble(NVT_Ensemble):
             self.file_io.write_vectors(x, v, step_no)
             self.file_io.write_scalars(ke, pe, temp, step_no)
 
-            univ_energy = self.nht.universe_energy(ke, pe)
-            self.file_io.write_hprime(univ_energy, step_no)
+            if Config.thermostat == 'nh':
+                univ_energy = self.nht.universe_energy(ke, pe)
+                self.file_io.write_hprime(univ_energy, step_no)
 
-        self.file_io.write_rst(self.sys.x, self.sys.v, self.sys.m, self.num_steps - 1, xi = self.nht.xi, vxi = self.nht.vxi)
+        if Config.thermostat == 'nh':
+            self.file_io.write_rst(self.sys.x, self.sys.v, self.sys.m, self.num_steps - 1, xi = self.nht.xi, vxi = self.nht.vxi)
+        else:
+            self.file_io.write_rst(self.sys.x, self.sys.v, self.sys.m, self.num_steps - 1)
         self.file_io.wrap_up()

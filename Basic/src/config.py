@@ -20,6 +20,9 @@ class Config:
     output_period = 10
     restart = False
 
+    # FOR NVT
+    thermostat = 'nh'
+
     # FOR REMD
     temperatures = []
     rsts = []
@@ -94,6 +97,9 @@ class Config:
 
             if 'restart' in data:
                 Config.restart = data['restart']
+
+            if 'thermostat' in data:
+                Config.thermostat = data['thermostat']
 
         except FileNotFoundError:
             print("No such file {}".format(file_name))

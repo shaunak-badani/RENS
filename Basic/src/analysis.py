@@ -382,6 +382,8 @@ class RENS_Analysis(REMD_Analysis):
         index = Config.primary_replica
         pos = self.all_positions[index]
         interval = 10000
+        if interval > pos.shape[0]:
+            interval = pos.shape[0] // 2
         for particle_no in range(pos.shape[1]):
             images_path = os.path.join(self.an.images_path, "P_vs_t")
             if not os.path.isdir(images_path):
@@ -512,6 +514,4 @@ class RENS_Analysis(REMD_Analysis):
         T_B = Config.temperatures[self.exchanges['Dest'][0]]
         self.plot_work_distribution(self.exchanges['W_A'].to_numpy(), self.exchanges['W_B'].to_numpy(), T_A, T_B)
         self.plot_multiple_probs()
-        # self.get_simulation_data()
-        
-
+        self.get_simulation_data()

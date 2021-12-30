@@ -35,18 +35,25 @@ class REMDIntegrator(VelocityVerletIntegrator):
         self.no_replicas = self.comm.Get_size()
         self.exchange_attempts = 0
     
-    def swap_positions(self, sys, swap_partner, src):
+    def swap_positions(self, x, v, swap_partner, src):
         # If the current rank is not a source, it is a destination
-        print("SWAP PARTNER, SRC : ", swap_partner, src)
-        x = []
+        # print("SWAP PARTNER, SRC : ", swap_partner, src, x, v)
         if src:
-            self.comm.send(sys.x, dest = swap_partner, tag = 1)
-            x = self.comm.recv(source = swap_partner, tag = 2)
+            self.comm.send(x, dest = swap_partner, tag = 6)
+            self.comm.send(v, dest = swap_partner, tag = 7)
+            # print("Src : ", self.comm.rank)
+            y_x = self.comm.recv(source = swap_partner, tag = 8)
+            y_v = self.comm.recv(source = swap_partner, tag = 9)
             
         else:
-            x = self.comm.recv(source = swap_partner, tag = 1)
-            self.comm.send(sys.x, dest = swap_partner, tag = 2)
-        return x
+            y_x = self.comm.recv(source = swap_partner, tag = 6)
+            y_v = self.comm.recv(source = swap_partner, tag = 7)
+
+            # print("not src: ", y_v)
+            self.comm.send(x, dest = swap_partner, tag = 8)
+            self.comm.send(v, dest = swap_partner, tag = 9)
+
+        return y_x, y_v
     
 
     def __rex_exchange_as_leader(self, self_energy, peer_rank):
@@ -75,7 +82,7 @@ class REMDIntegrator(VelocityVerletIntegrator):
         if exchange:
             self.comm.send(Config.replica_id, dest = peer_rank, tag = 5)
             factor = self.scale_velocity_factor(Config.T(), Config.temperatures[peer_id])
-            Config.replica_id = peer_id
+            # Config.replica_id = peer_id
         return exchange, metropolis, factor
         
 
@@ -90,12 +97,12 @@ class REMDIntegrator(VelocityVerletIntegrator):
             peer_id = self.comm.recv(source = peer_rank, tag = 5)
             factor = self.scale_velocity_factor(Config.T(), Config.temperatures[peer_id])
 
-            Config.replica_id = peer_id
+            # Config.replica_id = peer_id
         
         return exchange, 0.69, factor
 
     
-    def step(self, energy, step_no, file_io):
+    def step(self, x, v, energy, step_no, file_io):
         
         
         if self.rank % 2 == 0:
@@ -103,19 +110,34 @@ class REMDIntegrator(VelocityVerletIntegrator):
         else:
             peer_rank = self.rank - 1        
 
-
+        y_x = x
+        y_v = v
         exchange = False
         if peer_rank >= 0 and peer_rank < self.no_replicas:
             if self.rank > peer_rank:
                 exchange, acc_prob, factor = self.__rex_exchange_as_leader(energy, peer_rank)
-                file_io.declare_step(step_no)
-                file_io.write_exchanges(self.rank, peer_rank, exchange, acc_prob)
+                arr = [step_no, self.rank, peer_rank, exchange, acc_prob]
+                self.comm.send(arr, dest = peer_rank, tag = 10)
+                # file_io.declare_step(step_no)
+                # file_io.write_exchanges(self.rank, peer_rank, exchange, acc_prob)
                 
             else:
                 exchange, _, factor = self.__rex_exchange_as_follower(energy, peer_rank)
+                arr = self.comm.recv(source = peer_rank, tag = 10)
+            
             if exchange:
-                file_io.update_files()
-        return exchange, factor
+                scale_factor = self.scale_velocity_factor(Config.T(), Config.temperatures[peer_rank])
+                v *= scale_factor
+                y_x, y_v = self.swap_positions(x, v, peer_rank, self.rank > peer_rank)
+
+        if self.rank % 2 != 0 and len(arr) > 0:
+            self.comm.send(arr, dest = 0, tag = 3)
+
+        if self.rank == 0:
+            for i in range(1, self.no_replicas + 1, 2):
+                arr = self.comm.recv(source = i, tag = 3)
+                file_io.write_exchanges(arr)
+        return y_x, y_v
 
         
     

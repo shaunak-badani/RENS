@@ -151,18 +151,22 @@ class Analysis:
 
     def velocity_distribution(self, vel, particle_index, images_path):
 
+        fig = plt.figure(figsize = (7, 6))
+
         vel_count, be = np.histogram(vel[:, particle_index], bins = 30, density = True)
         vel_coords = (be[1:] + be[:-1]) / 2
 
         m = 1
-        expected_dist = np.exp(-vel_coords**2 / (2 * m * Units.kB * Config.T()))
-        Z_vel = np.sqrt(2 * m * Units.kB * Config.T())
+        expected_dist = np.exp(-m * vel_coords**2 / (2  * Units.kB * Config.T()))
+        Z_vel = np.sqrt(2 * np.pi * Units.kB * Config.T() / m)
         expected_dist /= Z_vel
-        plt.plot(vel_coords, expected_dist)
-        plt.scatter(vel_coords, vel_count)
+        plt.plot(vel_coords, expected_dist, color = 'orange', label = r'Expected $\rho(v_i)$')
+        plt.scatter(vel_coords, vel_count, color = 'purple', label = r'Obtained $\rho(v_i)$')
+        plt.xlabel(r'$v_i$', fontsize = 15)
+        _ = plt.ylabel(r'$\rho(v_i)$', fontsize = 15)
+        plt.legend(loc = 'best')
+        _.set_rotation(0)
         
-        # for i in vel_bins:
-        #     plt.axvline(x = i, linewidth = 0.1)
         vel_dist = os.path.join(images_path, "vel_dist.png")
         plt.savefig(vel_dist)
          
@@ -284,12 +288,11 @@ class NVE_Analysis:
         velocities = os.path.join(file_path, "v.txt")
         
         pos = np.loadtxt(positions)
-        vel = np.loadtxt(positions)
+        vel = np.loadtxt(velocities)
 
         steps = pos[:, 0]
         pos = pos[:, 1:]
         vel = vel[:, 1:]
-
         self.vel = vel
         self.steps = steps
         self.pos = pos

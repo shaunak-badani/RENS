@@ -11,6 +11,7 @@ from src.free_particle import FreeParticleSystem
 from src.muller import MullerSystem
 from src.leonnard_jones import LJ
 from src.nose_hoover import NoseHoover
+from src.langevin import LangevinThermostat
 from src.minimizer import Minimizer
 
 import numpy as np
@@ -77,6 +78,11 @@ class NVE_Ensemble:
         for step_no in range(self.starting_step, self.num_steps):
             x, v = self.stepper.step(self.sys, step_no)
 
+            self.sys.set_x(x)
+            self.sys.set_v(v)
+            if step_no % self.file_io.output_period != 0:
+                continue
+
             pe = self.sys.U(x)
             self.sys.set_x(x)
             self.sys.set_v(v)
@@ -97,6 +103,11 @@ class MinimizerEnsemble(NVE_Ensemble):
     def run_simulation(self):
         for step_no in range(self.starting_step, self.num_steps):
             x = self.minimizer.step(self.sys)
+
+            self.sys.set_x(x)
+            if step_no % self.file_io.output_period != 0:
+                continue
+            
             v = self.sys.v
             pe = self.sys.U(x)
             self.sys.set_x(x)
@@ -115,26 +126,39 @@ class NVT_Ensemble(NVE_Ensemble):
     def __init__(self, *args):
         super().__init__(*args)
         
-        self.nht = NoseHoover(self.stepper.dt)
+        if Config.thermostat == 'nh':
+            self.nht = NoseHoover(self.stepper.dt)
+        elif Config.thermostat == 'langevin':
+            self.thermostat = LangevinThermostat(self.stepper.dt)
 
     def run_simulation(self):
         for step_no in range(self.starting_step, self.num_steps):
-            v = self.nht.step(self.sys.m, self.sys.v)
-            x, v = self.stepper.step(self.sys, step_no, v = v)
-            v = self.nht.step(self.sys.m, v)
+            if Config.thermostat == 'nh':
+                v = self.nht.step(self.sys.m, self.sys.v)
+                x, v = self.stepper.step(self.sys, step_no, v = v)
+                v = self.nht.step(self.sys.m, v)
+            else:
+                x, v = self.thermostat.step(self.sys.x, self.sys.v, self.sys.F, self.sys.m)
 
-            pe = self.sys.U(x)
             self.sys.set_x(x)
             self.sys.set_v(v)
+            if step_no % self.file_io.output_period != 0:
+                continue
+
+            pe = self.sys.U(x)
             ke = self.sys.K(v)
             temp = self.sys.instantaneous_T(v)
             self.file_io.write_vectors(x, v, step_no)
             self.file_io.write_scalars(ke, pe, temp, step_no)
 
-            univ_energy = self.nht.universe_energy(ke, pe)
-            self.file_io.write_hprime(univ_energy, step_no)
+            if Config.thermostat == 'nh':
+                univ_energy = self.nht.universe_energy(ke, pe)
+                self.file_io.write_hprime(univ_energy, step_no)
 
-        self.file_io.write_rst(self.sys.x, self.sys.v, self.sys.m, self.num_steps - 1, xi = self.nht.xi, vxi = self.nht.vxi)
+        if Config.thermostat == 'nh':
+            self.file_io.write_rst(self.sys.x, self.sys.v, self.sys.m, self.num_steps - 1, xi = self.nht.xi, vxi = self.nht.vxi)
+        else:
+            self.file_io.write_rst(self.sys.x, self.sys.v, self.sys.m, self.num_steps - 1)
         del(self.file_io)
 
 class REMD_Ensemble(NVT_Ensemble):
@@ -145,26 +169,36 @@ class REMD_Ensemble(NVT_Ensemble):
         self.num_steps = num_steps
         self.starting_step = starting_step
         self.stepper = VelocityVerletIntegrator()
-        self.nht = NoseHoover(self.stepper.dt)
         self.remd_integrator = REMDIntegrator()
+
+        if Config.thermostat == 'nh':
+            self.nht = NoseHoover(self.stepper.dt)
+        else:
+            self.thermostat = LangevinThermostat(self.stepper.dt)
+
 
     def run_simulation(self):
         for step_no in range(self.starting_step, self.num_steps):
-            from mpi4py import MPI
-            comm = MPI.COMM_WORLD
-            rank = comm.Get_rank()
 
             v = self.sys.v
-            if step_no % self.remd_integrator.exchange_period == 0:
-                exchange, factor = self.remd_integrator.step(self.sys.U(self.sys.x), step_no, self.file_io)
-                v = self.sys.v * factor
-            v = self.nht.step(self.sys.m, v)
-            x, v = self.stepper.step(self.sys, step_no, v = v)
-            v = self.nht.step(self.sys.m, v)
+            x = self.sys.x
+            if step_no != 0 and step_no % self.remd_integrator.exchange_period == 0:
+                y_x, y_v = self.remd_integrator.step(x, v, self.sys.U(self.sys.x), step_no, self.file_io)
+                x, v = y_x, y_v
+            else: 
+                if Config.thermostat == 'nh':
+                    v = self.nht.step(self.sys.m, v)
+                    x, v = self.stepper.step(self.sys, step_no, v = v)
+                    v = self.nht.step(self.sys.m, v)
+                else:
+                    x, v = self.thermostat.step(self.sys.x, self.sys.v, self.sys.F, self.sys.m)
 
-            pe = self.sys.U(x)
             self.sys.set_x(x)
             self.sys.set_v(v)
+            if step_no % self.file_io.output_period != 0:
+                continue
+
+            pe = self.sys.U(x)
             ke = self.sys.K(v)
             temp = self.sys.instantaneous_T(v)
 
@@ -172,8 +206,16 @@ class REMD_Ensemble(NVT_Ensemble):
             univ_energy = self.nht.universe_energy(ke, pe)
             self.file_io.write_hprime(univ_energy, step_no)
 
-        self.file_io.write_rst(self.sys.x, self.sys.v, self.sys.m, self.num_steps - 1, xi = self.nht.xi, vxi = self.nht.vxi)
-        del(self.file_io)
+            if Config.thermostat == 'nh':
+                univ_energy = self.nht.universe_energy(ke, pe)
+                self.file_io.write_hprime(univ_energy, step_no)
+
+        if Config.thermostat == 'nh':
+            self.file_io.write_rst(self.sys.x, self.sys.v, self.sys.m, self.num_steps - 1, xi = self.nht.xi, vxi = self.nht.vxi)
+        else:
+            self.file_io.write_rst(self.sys.x, self.sys.v, self.sys.m, self.num_steps - 1)
+        self.file_io.wrap_up()
+
 
 class RENS_Ensemble(REMD_Ensemble):
 
@@ -183,16 +225,25 @@ class RENS_Ensemble(REMD_Ensemble):
         self.num_steps = num_steps
         self.starting_step = starting_step
         self.stepper = VelocityVerletIntegrator()
-        self.nht = NoseHoover(self.stepper.dt)
         self.rens_integrator = RENSIntegrator(self.stepper.dt)
+
+        if Config.thermostat == 'nh':
+            self.nht = NoseHoover(self.stepper.dt)
+        else:
+            self.thermostat = LangevinThermostat(self.stepper.dt)
+            
+
 
     def run_simulation(self):
         for step_no in range(self.starting_step, self.num_steps):
             t = step_no * self.stepper.dt
             if self.rens_integrator.mode == 0:
-                v = self.nht.step(self.sys.m, self.sys.v)
-                x, v = self.stepper.step(self.sys, step_no, v = v)
-                v = self.nht.step(self.sys.m, v)
+                if Config.thermostat == 'nh':
+                    v = self.nht.step(self.sys.m, self.sys.v)
+                    x, v = self.stepper.step(self.sys, step_no, v = v)
+                    v = self.nht.step(self.sys.m, v)
+                else:
+                    x, v = self.thermostat.step(self.sys.x, self.sys.v, self.sys.F, self.sys.m)
                 self.rens_integrator.attempt(self.sys, x, v)
             else:
                 x, v = self.rens_integrator.step(self.sys, t, self.file_io)
@@ -208,9 +259,14 @@ class RENS_Ensemble(REMD_Ensemble):
             self.file_io.write_vectors(x, v, t, self.rens_integrator.mode)
             self.file_io.write_scalars(ke, pe, temp, t)
 
-            univ_energy = self.nht.universe_energy(ke, pe)
-            self.file_io.write_hprime(univ_energy, t)
+            if Config.thermostat == 'nh':
+                univ_energy = self.nht.universe_energy(ke, pe)
+                self.file_io.write_hprime(univ_energy, t)
 
-        self.file_io.write_rst(self.sys.x, self.sys.v, self.sys.m, self.num_steps - 1, xi = self.nht.xi, vxi = self.nht.vxi)
+        if Config.thermostat == 'nh':
+            self.file_io.write_rst(self.sys.x, self.sys.v, self.sys.m, self.num_steps - 1, xi = self.nht.xi, vxi = self.nht.vxi)
+        else:
+            self.file_io.write_rst(self.sys.x, self.sys.v, self.sys.m, self.num_steps - 1)
         # del(self.file_io)
         
+            

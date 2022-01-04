@@ -1,0 +1,32 @@
+==================================================
+Summary of pdb4amber for file 1fsc.pdb
+==================================================
+
+----------Chains
+The following (original) chains have been found:
+A
+
+---------- Non-Standard Residues
+The following non-standard residue names in the original PDB file
+are not recognized by Amber and have been written to the separate
+file 1fsc_amb_nonprot.pdb
+UNL
+
+---------- Histidines (Renumbered Residues!)
+It was not possible to determine the protonation state of the following HIS
+residues based on presence of hydrogens. Amber will consider them as HIE
+(epsilon-HIS) by default. If other protonation state desired change to HID
+(delta-HIS) or HIP (protonated HIS) by hand.
+HIS_29
+HIS_6
+
+---------- Cysteines in Disulfide Bonds (Renumbered Residues!)
+CYS_3 - CYS_22: S-S distance = 1.982009 Ang.
+CYS_17 - CYS_39: S-S distance = 1.994242 Ang.
+CYS_41 - CYS_52: S-S distance = 2.017452 Ang.
+CYS_53 - CYS_59: S-S distance = 2.025811 Ang.
+The above CYS have been renamed to CYX in the new PDB file.
+Disulfide bond CONECT cards have been added to the new PDB file.
+
+---------- Missing Heavy Atoms (Renumbered Residues!)
+None

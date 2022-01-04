@@ -1,0 +1,12 @@
+{
+    "num_particles": 10,
+    "num_steps": 10000000,
+    "output_period" : 100,
+    "temperatures": [0.3, 2.0],
+    "run_type": "rens",
+    "analyze" : true,
+    "system" : "1D_Leach",
+    "run_name" : "rens_13",
+    "tau" : 100.0,
+    "ada" : false
+}

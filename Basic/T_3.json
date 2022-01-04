@@ -1,0 +1,9 @@
+{
+    "num_particles": 1,
+    "num_steps": 50000,
+    "temperature": 3.0,
+    "output_period" : 100,
+    "run_type": "nvt",
+    "analyze" : true,
+    "system" : "Muller"
+}

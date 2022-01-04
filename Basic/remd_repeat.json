@@ -1,0 +1,11 @@
+{
+    "num_steps": 1500,
+    "run_type": "remd",
+    "output_period" : 100,  
+    "temperatures": [0.3, 2.0],
+    "analyze" : true,
+    "system" : "1D_Leach",
+    "primary_replica": 0,
+    "rsts" : ["./rsts/remd/0.rst", "./rsts/remd/1.rst"],
+    "ada": false
+}

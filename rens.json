@@ -1,0 +1,11 @@
+{
+    "num_particles": 10,
+    "num_steps": 50000,
+    "output_period" : 1,
+    "temperatures": [0.3, 2.0],
+    "run_type": "rens",
+    "analyze" : true,
+    "system" : "1D_Leach",
+    "run_name" : "Shaunak",
+    "tau" : 1.345
+}

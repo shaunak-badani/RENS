@@ -42,13 +42,15 @@ class NoseHoover():
 
     def step(self, m, v):
         
-        N_f = self.num_particles
+        _, d = v.shape
+        N_f = d * self.num_particles
         T = Config.T()
         M = self.M
         n_c = self.n_c
         n_ys = self.w.shape[0]
         SCALE = 1.0
-        KE2 = np.sum(m * v**2)        
+        KE2 = np.sum(m * v**2)
+              
         
         
         for i in range(n_c):

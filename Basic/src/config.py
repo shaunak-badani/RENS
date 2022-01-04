@@ -87,7 +87,11 @@ class Config:
             Config.run_name = os.path.splitext(file_name)[0]
 
             if not Config.ada:
-                Config.files = "../../runs"
+                if 'files' in data:
+                    Config.files = data['files']
+                else:
+                    Config.files = "../../runs"
+
             
             if 'primary_replica' in data:
                 Config.primary_replica = data['primary_replica']

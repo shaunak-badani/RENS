@@ -303,6 +303,40 @@ class NVT_Analysis(NVE_Analysis):
 
     def __init__(self):
         self.an = Analysis()
+    
+    def get_2d_graph(self):
+        x_range = np.linspace(-2, 1.0, 200)
+        y_range = np.linspace(-0.5, 2, 100)
+
+        xs, ys = np.meshgrid(x_range, y_range)
+        xs_flatten = xs.flatten()
+        ys_flatten = ys.flatten()
+
+        from src.muller import MullerSystem
+        U = MullerSystem().pot_energy
+        u = np.zeros_like(xs_flatten)
+        for  i, point in enumerate(zip(xs_flatten, ys_flatten)):
+            x = point[0]
+            y = point[1]
+            u[i] = U(x, y)
+        u = u.reshape(xs.shape)
+        return xs, ys, u
+
+    def plot_2D_positions(self):
+        N = Config.num_particles
+        pos_plot_path = os.path.join(self.images_path, "Positions")
+        os.system('mkdir -p {}'.format(pos_plot_path))
+        xs, ys, u = self.get_2d_graph()
+        for particle_no in range(N):
+            idx = 2 * particle_no
+            pos = self.pos[:, idx:idx + 2]
+            fig = plt.figure(figsize = (7, 6))
+            u = u.clip(-1000, 800)
+            plt.contourf(xs, ys, u, levels = 40)
+            plt.colorbar()
+            plt.scatter(pos[:, 0], pos[:, 1])
+            plt.savefig(os.path.join(pos_plot_path, str(particle_no) + '.png'))
+            plt.close()
 
     def analyze(self):
         self.an.plot_energy()
@@ -313,6 +347,9 @@ class NVT_Analysis(NVE_Analysis):
         self.load_univ()
         if hasattr(self, 'univ'):
             self.an.plot_hprime(self.univ_path)
+        
+        if Config.system == 'Muller':
+            self.plot_2D_positions()
 
         self.an.velocity_distribution(self.vel, 0, self.images_path)
 

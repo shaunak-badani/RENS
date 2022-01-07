@@ -42,11 +42,11 @@ class FileOperations:
         
         str_x = ' '.join(np.char.mod('%.3f', x.flatten()))
         # print(str_x)
-        self.pos_file.write("{} {}".format(timestep, str_x))
+        self.pos_file.write("{:.3f} {}".format(timestep, str_x))
         self.pos_file.write("\n")
         
         str_v = ' '.join(np.char.mod('%.3f', v.flatten()))
-        self.vel_file.write("{} {}".format(timestep, str_v))
+        self.vel_file.write("{:.3f} {}".format(timestep, str_v))
         self.vel_file.write("\n")
 
     def write_scalars(self, ke, pe, T, timestep):

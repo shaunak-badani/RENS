@@ -269,8 +269,6 @@ class RENSIntegrator(REMDIntegrator):
         F = sys.F
         m = sys.m
 
-        print("HERE")
-        print(self.nsteps)
         if self.nsteps == 0:
             v *= np.sqrt(self.T_B / self.T_A)
 

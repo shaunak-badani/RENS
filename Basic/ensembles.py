@@ -203,9 +203,7 @@ class REMD_Ensemble(NVT_Ensemble):
             temp = self.sys.instantaneous_T(v)
 
             self.file_io.write_scalars(ke, pe, temp, step_no * self.stepper.dt)
-            univ_energy = self.nht.universe_energy(ke, pe)
-            self.file_io.write_hprime(univ_energy, step_no)
-
+            
             if Config.thermostat == 'nh':
                 univ_energy = self.nht.universe_energy(ke, pe)
                 self.file_io.write_hprime(univ_energy, step_no)

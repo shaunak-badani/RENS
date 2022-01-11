@@ -41,8 +41,8 @@ class MullerMod(MullerSystem):
         exp = (x - self.center[0])**2 + (y - self.center[1])**2
         exp /= 2 * self.sigma**2
 
-        F_x = F_x.sum() + height * np.exp(-exp) * (x - center[0]) / sigma**2
-        F_y = F_y.sum() + height * np.exp(-exp) * (y - center[1]) / sigma**2
+        F_x = F_x.sum() + self.height * np.exp(-exp) * (x - self.center[0]) / sigma**2
+        F_y = F_y.sum() + self.height * np.exp(-exp) * (y - self.center[1]) / sigma**2
         return np.array([F_x, F_y])
 
     def U(self, q):

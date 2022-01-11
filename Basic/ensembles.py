@@ -138,6 +138,7 @@ class NVT_Ensemble(NVE_Ensemble):
 
     def run_simulation(self):
         for step_no in range(self.starting_step, self.num_steps):
+            t = step_no * self.stepper.dt
             if Config.thermostat == 'nh':
                 v = self.nht.step(self.sys.m, self.sys.v)
                 x, v = self.stepper.step(self.sys, step_no, v = v)
@@ -153,12 +154,12 @@ class NVT_Ensemble(NVE_Ensemble):
             pe = self.sys.U(x)
             ke = self.sys.K(v)
             temp = self.sys.instantaneous_T(v)
-            self.file_io.write_vectors(x, v, step_no)
-            self.file_io.write_scalars(ke, pe, temp, step_no)
+            self.file_io.write_vectors(x, v, t)
+            self.file_io.write_scalars(ke, pe, temp, t)
 
             if Config.thermostat == 'nh':
                 univ_energy = self.nht.universe_energy(ke, pe)
-                self.file_io.write_hprime(univ_energy, step_no)
+                self.file_io.write_hprime(univ_energy, t)
 
         if Config.thermostat == 'nh':
             self.file_io.write_rst(self.sys.x, self.sys.v, self.sys.m, self.num_steps - 1, xi = self.nht.xi, vxi = self.nht.vxi)

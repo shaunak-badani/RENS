@@ -28,7 +28,7 @@ class MullerMod(MullerSystem):
         exp /= 2 * self.sigma**2
         extra_term = self.height * np.exp(-exp)
 
-        return V_vector.sum()
+        return V_vector.sum() + extra_term
 
     def __force(self, x, y):
         exponent = self.a * (x - self.mean_x)**2 

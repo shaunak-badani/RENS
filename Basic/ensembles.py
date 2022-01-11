@@ -9,6 +9,8 @@ from src.integrator import REMDIntegrator
 from src.integrator import RENSIntegrator
 from src.free_particle import FreeParticleSystem
 from src.muller import MullerSystem
+from src.muller_mod import MullerMod
+
 from src.leonnard_jones import LJ
 from src.nose_hoover import NoseHoover
 from src.langevin import LangevinThermostat
@@ -43,6 +45,9 @@ class Ensemble:
             sys = HarmonicOscillator()
         elif Config.system == 'Muller':
             sys = MullerSystem()
+        elif Config.system == 'MullerMod':
+            sys = MullerMod()
+
 
         nsteps = Config.num_steps
 

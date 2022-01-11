@@ -185,6 +185,7 @@ class REMD_Ensemble(NVT_Ensemble):
     def run_simulation(self):
         for step_no in range(self.starting_step, self.num_steps):
 
+            t = step_no * self.stepper.dt
             v = self.sys.v
             x = self.sys.x
             if step_no != 0 and step_no % self.remd_integrator.exchange_period == 0:
@@ -207,10 +208,9 @@ class REMD_Ensemble(NVT_Ensemble):
             ke = self.sys.K(v)
             temp = self.sys.instantaneous_T(v)
 
+            self.file_io.write_vectors(x, v, t)
             self.file_io.write_scalars(ke, pe, temp, step_no * self.stepper.dt)
-            univ_energy = self.nht.universe_energy(ke, pe)
-            self.file_io.write_hprime(univ_energy, step_no)
-
+            
             if Config.thermostat == 'nh':
                 univ_energy = self.nht.universe_energy(ke, pe)
                 self.file_io.write_hprime(univ_energy, step_no)

@@ -25,8 +25,8 @@ class MullerSystem(System):
 
         # Initializing in one of the basins
         # To see if it samples the other
-        a = np.random.uniform(-0.8, -0.3, size = (N, 1))
-        b = np.random.uniform(1.0, 1.9, size = (N, 1))
+        a = np.random.uniform(-0.525, -0.275, size = (N, 1))
+        b = np.random.uniform(1.5, 1.8, size = (N, 1))
         self.x = np.hstack((a, b))
         self.m = np.full((N, 1), 1) # kg / mol
         self.__init_velocities()

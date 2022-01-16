@@ -22,6 +22,7 @@ class MullerMod(MullerSystem):
         exponent = self.a * (x - self.mean_x)**2
         exponent += self.b * (x - self.mean_x) * (y - self.mean_y)
         exponent += self.c * (y - self.mean_y)**2
+        exponent[exponent > 700] = 700
         V_vector = self.A * np.exp(exponent)
 
         exp = (x - self.center[0])**2 + (y - self.center[1])**2
@@ -41,8 +42,10 @@ class MullerMod(MullerSystem):
         exp = (x - self.center[0])**2 + (y - self.center[1])**2
         exp /= 2 * self.sigma**2
 
-        F_x = F_x.sum() + self.height * np.exp(-exp) * (x - self.center[0]) / sigma**2
-        F_y = F_y.sum() + self.height * np.exp(-exp) * (y - self.center[1]) / sigma**2
+        amplitude = self.height * np.exp(-exp)
+
+        F_x = F_x.sum() + amplitude * (x - self.center[0]) / sigma**2
+        F_y = F_y.sum() + amplitude * (y - self.center[1]) / sigma**2
         return np.array([F_x, F_y])
 
     def U(self, q):
@@ -59,14 +62,17 @@ class MullerMod(MullerSystem):
         gaussians = self.Va * (x - self.Vmean_x)**2
         gaussians += self.Vb * (x - self.Vmean_x) * (y - self.Vmean_y)
         gaussians += self.Vc * (y - self.Vmean_y)**2
+
+        gaussians[gaussians > 700] = 700
+
         pot = (self.VA * np.exp(gaussians))
 
 
         exp = (x - self.center[0])**2 + (y - self.center[1])**2
         exp /= 2 * self.sigma**2
         extra_term = self.height * np.exp(-exp)
-
-        return pot.sum()
+        
+        return pot.sum() + extra_term.sum()
         
                     
     def F(self, q):
@@ -94,8 +100,11 @@ class MullerMod(MullerSystem):
         
         F_x = F_x.sum(axis = 0)
         F_y = F_y.sum(axis = 0)
-        F_x += self.height * np.exp(-exp) * (x - self.center[0]) / self.sigma**2
-        F_y += self.height * np.exp(-exp) * (y - self.center[1]) / self.sigma**2
+
+        amplitude = self.height * np.exp(-exp)
+        
+        F_x += amplitude * (x - self.center[0]) / self.sigma**2
+        F_y += amplitude * (y - self.center[1]) / self.sigma**2
         
         F_x = F_x.reshape(-1, 1)
         F_y = F_y.reshape(-1, 1)

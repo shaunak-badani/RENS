@@ -377,7 +377,7 @@ class REMD_Analysis(NVE_Analysis):
         self.all_positions = []
         self.all_velocities = []
         
-    def analyze(self):
+    def leach_analyze(self):
         self.an.initialize_bins([-np.inf, -0.75, 0.25, 1.25, np.inf])
         root_dir = self.an.file_path
 
@@ -397,6 +397,102 @@ class REMD_Analysis(NVE_Analysis):
         self.an.plot_maxwell(self.all_positions[Config.primary_replica], 0, System().pot_energy, Config.T(), Config.primary_replica)
         self.an.plot_probs(self.all_positions[Config.primary_replica], 0, System().pot_energy, Config.T(), Config.primary_replica)
         self.an.plot_free_energy(self.all_positions[Config.primary_replica], 0, System().pot_energy)
+
+    def analyze(self):
+        if Config.system == '1D_Leach':
+            self.leach_analyze()
+        else:
+            self.mullermod_analyze()
+
+    ## MullerMod Analysis
+
+    def mullermod_analyze(self):
+        root_dir = self.an.file_path
+
+        for index, t in enumerate(Config.temperatures):
+            self.an.file_path = os.path.join(self.an.file_path, str(index))
+            self.load_positions_and_velocities()
+            ind = (self.pos[:, -1] == 0)
+            pos = self.pos[ind, :-1]
+            vel = self.vel[ind, :-1]
+            steps = self.steps[ind]
+            self.all_positions.append(pos)
+            self.all_velocities.append(vel)
+            images_path = self.an.images_path + "/" + str(index)
+            if not os.path.isdir(images_path):
+                os.mkdir(images_path)
+            self.an.plot_temperature(Config.temperatures[index], images_path)
+            self.an.file_path = root_dir
+            
+            self.plot_2D_probdist(self.pos, index, images_path)
+
+    def plot_2D_probdist(self, pos, replica_no, images_path):
+        T = Config.temperatures[replica_no]
+        N = Config.num_particles
+        prob_plot_path = os.path.join(images_path, "Probdist")
+        os.system('mkdir -p {}'.format(prob_plot_path))
+
+        kB = 1
+        beta = 1 / (kB * T)
+        
+        from scipy.integrate import dblquad
+        U = MullerMod().pot_energy
+
+        f = lambda x,y: np.exp(-beta * U(x, y))
+        Z = dblquad(f, -np.inf, np.inf, lambda y:-np.inf, lambda y:np.inf)[0]
+
+        # Kullback Lieber Divergence data
+        KL_data = []
+
+        for particle_no in range(N):
+
+            idx = 2 * particle_no
+            p = pos[:, idx:idx + 2]
+            fig = plt.figure(figsize = (15, 6))
+
+            fig.add_subplot(1, 2, 2)
+            
+            q, xedges, yedges = np.histogram2d(p[:, 0], p[:, 1], bins = (100, 100), density = True)
+            xs_coords, ys_coords = np.meshgrid((xedges[1:] + xedges[:-1]) / 2, (yedges[1:] + yedges[:-1]) / 2)
+            q = q.T
+            plt.contourf(xs_coords, ys_coords, q)
+
+            plt.xlim([xs_coords[0].min(), xs_coords[0].max()])
+            plt.ylim([ys_coords[:, 0].min(), ys_coords[:, 0].max()])
+            plt.title('Obtained probability distribution')
+            plt.colorbar()
+
+            xs_flatten = xs_coords.flatten()
+            ys_flatten = ys_coords.flatten()
+            p = np.zeros_like(xs_flatten)
+
+            fig.add_subplot(1, 2, 1)
+            for i, point in enumerate(zip(xs_flatten, ys_flatten)):
+                x = point[0]
+                y = point[1]
+                p[i] = np.exp(-beta * U(x, y))
+            p = p.reshape(xs_coords.shape) / Z
+            plt.xlim([xs_coords[0].min(), xs_coords[0].max()])
+            plt.ylim([ys_coords[:, 0].min(), ys_coords[:, 0].max()])
+
+            plt.contourf(xs_coords, ys_coords, p)
+            plt.colorbar()
+            plt.title('Expected probability distribution')
+            plt.savefig(os.path.join(prob_plot_path, str(particle_no) + '.png'))
+
+            p += 1e-45
+            q += 1e-45
+
+            KL_data.append(np.sum(p * np.log(p / q)))            
+
+            plt.close()
+
+        data_object = {}
+        for i, KL in enumerate(KL_data):
+            data_object['KL_{}'.format(i)] = KL
+        data_object['KL_mean'] = np.array(KL_data).mean()
+        dict_df = pd.DataFrame({ key:pd.Series(value) for key, value in data_object.items() })
+        dict_df.to_csv(os.path.join(images_path, "run_summary.dat"), index = False, float_format = '%.3f', sep = '\t')
 
 class RENS_Analysis(REMD_Analysis):
 
@@ -529,7 +625,6 @@ class RENS_Analysis(REMD_Analysis):
 
         data_object = {'W_mean' : w_mean, 'p_acc' : p_acc, 'X' : X, 'f_sw' : f_sw, 't_star' : t_star}
         dict_df = pd.DataFrame({ key:pd.Series(value) for key, value in data_object.items() })
-        dict_df
         dict_df.to_csv(os.path.join(self.an.images_path, "run_summary.dat"), index = False)
 
     def leach_analyze(self):
@@ -586,7 +681,7 @@ class RENS_Analysis(REMD_Analysis):
         Z_single_particle = dblquad(free, -np.inf, np.inf, lambda y:-np.inf, lambda y:np.inf)[0]
 
         f = -N * np.log(Z_single_particle)
-        f -= N * np.log(2 * np.pi / beta)
+        f -= (N / 2) * np.log(2 * np.pi / beta)
         return f
         
     def mullermod_analyze(self):
@@ -614,61 +709,9 @@ class RENS_Analysis(REMD_Analysis):
         T_B = Config.temperatures[exchanges['Dest'][0]]
         self.plot_work_distribution(exchanges['W_A'].to_numpy(), exchanges['W_B'].to_numpy(), T_A, T_B)
     
-    def plot_2D_probdist(self, pos, replica_no, images_path):
-        T = Config.temperatures[replica_no]
-        N = Config.num_particles
-        prob_plot_path = os.path.join(images_path, "Probdist")
-        os.system('mkdir -p {}'.format(prob_plot_path))
+    
 
-        kB = 1
-        beta = 1 / (kB * T)
-        
-        x_range = np.linspace(-2, 1.0, 200)
-        y_range = np.linspace(-0.5, 2.5, 100)
-
-        xs, ys = np.meshgrid(x_range, y_range)
-        xs_flatten = xs.flatten()
-        ys_flatten = ys.flatten()
-        
-        from scipy.integrate import dblquad
-        U = MullerMod().pot_energy
-
-        f = lambda x,y: np.exp(-beta * U(x, y))
-        Z = dblquad(f, -np.inf, np.inf, lambda y:-np.inf, lambda y:np.inf)[0]
-
-        for particle_no in range(N):
-
-            idx = 2 * particle_no
-            p = pos[:, idx:idx + 2]
-            fig = plt.figure(figsize = (15, 6))
-            u = np.zeros_like(xs_flatten)
-
-
-            fig.add_subplot(1, 2, 1)
-            for i, point in enumerate(zip(xs_flatten, ys_flatten)):
-                x = point[0]
-                y = point[1]
-                u[i] = np.exp(-beta * U(x, y))
-            u = u.reshape(xs.shape) / Z
-            plt.xlim([-1.0, 1.0])
-            plt.ylim([-0.5, 2.0])
-
-            plt.contourf(xs, ys, u)
-            plt.colorbar()
-            plt.title('Expected probability distribution')
-
-            fig.add_subplot(1, 2, 2)
             
-            H, xedges, yedges = np.histogram2d(p[:, 0], p[:, 1], bins = (100, 100), density = True)
-            xs_coords, ys_coords = np.meshgrid((xedges[1:] + xedges[:-1]) / 2, (yedges[1:] + yedges[:-1]) / 2)
-            plt.contourf(xs_coords, ys_coords, H.T)
-
-            plt.xlim([-1.0, 1.0])
-            plt.ylim([-0.5, 2.0])
-            plt.title('Obtained probability distribution')
-            plt.colorbar()
-            plt.savefig(os.path.join(prob_plot_path, str(particle_no) + '.png'))
-            plt.close()
 
 
     

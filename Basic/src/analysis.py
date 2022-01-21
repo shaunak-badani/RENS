@@ -522,36 +522,25 @@ class RENS_Analysis(REMD_Analysis):
         for i in range(1, 5):
             boltzmann_integrand[i - 1] = quad(lambda x: np.exp(-beta * pot_energy(x)), bins[i-1], bins[i])[0]
 
-        boltzmann_integrand /= boltzmann_integrand.sum()
+        boltzmann_integrand /= quad(lambda x: np.exp(-beta * pot_energy(x)), -np.inf, np.inf)[0]
         index = Config.primary_replica
         pos = self.all_positions[index]
         interval = 10000
         if interval > pos.shape[0]:
             interval = pos.shape[0] // 2
         for particle_no in range(pos.shape[1]):
-            images_path = os.path.join(self.an.images_path, "P_vs_t")
+            images_path = os.path.join(self.an.images_path, "Probdist_per_particle")
             if not os.path.isdir(images_path):
                 os.mkdir(images_path)
 
-            h = interval
-            i = 0
-            l = []
-            t = []
-            while h < pos.shape[0]:
-                p, _ = np.histogram(pos[:h, particle_no], bins = bins)
-                p = p.astype('float')
-                p /= p.sum()
-                l.append(p)
-                i += 1
-                h += interval
-                
-                t.append(self.steps[min(self.steps.shape[0] - 1, h)])
-            l = np.array(l)
+            p, _ = np.histogram(pos[:, particle_no], bins = bins)
+            p = p.astype('float')
+            p /= p.sum()
             colors = ['r', 'g', 'b', 'm']
             markers=["+", "x", "o", "s"]
 
             for i in range(4):
-                plt.scatter(t, l[:, i], marker = markers[i], color=colors[i])
+                plt.scatter(0, p[i], marker = markers[i], color=colors[i])
                 plt.axhline(y = boltzmann_integrand[i], color = colors[i])
 
             plt.xlabel('Time (s)')
@@ -572,8 +561,13 @@ class RENS_Analysis(REMD_Analysis):
         plt.plot(-coords, p, lw = 3, label = r'$\rho_R (-w)$')
 
 
-        f_A = self.free_energy(Config.num_particles, T_A)
-        f_B = self.free_energy(Config.num_particles, T_B)
+        if Config.system == '1D_Leach':
+            f_A = self.free_energy(Config.num_particles, T_A)
+            f_B = self.free_energy(Config.num_particles, T_B)
+        else:
+            
+            f_A = self.twod_free_energy(Config.num_particles, T_A)
+            f_B = self.twod_free_energy(Config.num_particles, T_B)
 
         free = f_B - f_A
 
@@ -610,20 +604,8 @@ class RENS_Analysis(REMD_Analysis):
         X = tau / tau_eq
         f_sw = X / (1 + X)
 
-        # t_c, t_star
-        def auto_corr(x, tau):
-            len_data = len(x[tau:])
-            mean = x.mean()
-            num = (x[:len_data] * x[tau:tau + len_data]).mean() - mean**2
-            var = (x**2).mean() - (mean)**2
-            return num / var
 
-        n_4t = np.sum(self.all_positions[Config.primary_replica] >= 1.25, axis = 1)
-        c_t = np.array([auto_corr(n_4t, i) for i in range(n_4t.size)])
-        t_c = c_t.sum()
-        t_star = (1 + X) * t_c
-
-        data_object = {'W_mean' : w_mean, 'p_acc' : p_acc, 'X' : X, 'f_sw' : f_sw, 't_star' : t_star}
+        data_object = {'W_mean' : w_mean, 'p_acc' : p_acc, 'X' : X, 'f_sw' : f_sw}
         dict_df = pd.DataFrame({ key:pd.Series(value) for key, value in data_object.items() })
         dict_df.to_csv(os.path.join(self.an.images_path, "run_summary.dat"), index = False)
 
@@ -669,7 +651,7 @@ class RENS_Analysis(REMD_Analysis):
 
     ## MullerMod Analysis : 
 
-    def free_energy(self, N, T):
+    def twod_free_energy(self, N, T):
         from scipy.integrate import dblquad
         beta = 1 / (Units.kB * T)
         if Config.system == 'MullerMod':

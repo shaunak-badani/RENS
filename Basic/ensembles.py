@@ -273,6 +273,7 @@ class RENS_Ensemble(REMD_Ensemble):
             self.file_io.write_rst(self.sys.x, self.sys.v, self.sys.m, self.num_steps - 1, xi = self.nht.xi, vxi = self.nht.vxi)
         else:
             self.file_io.write_rst(self.sys.x, self.sys.v, self.sys.m, self.num_steps - 1)
+
         # del(self.file_io)
         
             

@@ -274,13 +274,14 @@ class RENSIntegrator(REMDIntegrator):
 
         if self.current_step >= self.nsteps:
             self.mode = 0
-            self.heat += (Config.num_particles / 2) * np.log(self.T_B / self.T_A)
+            _, system_dimension = x.shape
+            N_f = Config.num_particles * system_dimension
+            self.heat += (N_f / 2) * np.log(self.T_B / self.T_A)
 
             self.w += (sys.K(v) + sys.U(x)) / (Units.kB * self.T_B)
             self.w -= self.heat
 
             exchange = self.determine_exchange(timestep, sys, file_io)
-
             x_new, v_new = x[:], v[:]
             if not exchange:
                 x_new, v_new = self.x0, self.v0
@@ -323,7 +324,7 @@ class RENSIntegrator(REMDIntegrator):
         p_acc = 1.0
         arr = []
         if peer_rank >= 0 and peer_rank < self.no_replicas:
-            if self.rank > peer_rank:
+            if self.rank < peer_rank:
                 w_b = self.comm.recv(source = peer_rank, tag = 1)
                 w = w_a + w_b
 
@@ -338,7 +339,6 @@ class RENSIntegrator(REMDIntegrator):
 
                 arr = [timestep, self.rank, peer_rank, exchange, p_acc, w, w_a, w_b]
                 self.comm.send(arr, dest = peer_rank, tag = 2)
-                # file_io.write_exchanges()
             
             else:
                 self.comm.send(w_a, dest = peer_rank, tag = 1)

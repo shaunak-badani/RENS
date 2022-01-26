@@ -492,7 +492,7 @@ class REMD_Analysis(NVE_Analysis):
             data_object['KL_{}'.format(i)] = KL
         data_object['KL_mean'] = np.array(KL_data).mean()
         dict_df = pd.DataFrame({ key:pd.Series(value) for key, value in data_object.items() })
-        dict_df.to_csv(os.path.join(images_path, "run_summary.dat"), index = False, float_format = '%.3f', sep = '\t')
+        dict_df.to_csv(os.path.join(images_path, "KL_data.dat"), index = False, float_format = '%.3f', sep = '\t')
 
 class RENS_Analysis(REMD_Analysis):
 
@@ -684,12 +684,30 @@ class RENS_Analysis(REMD_Analysis):
             self.an.plot_temperature(Config.temperatures[index], images_path)
             self.an.file_path = root_dir
             
-            self.plot_2D_probdist(self.pos, index, images_path)
+            # self.plot_2D_probdist(self.pos, index, images_path)
         exchanges = pd.read_csv(os.path.join(self.an.file_path, "exchanges.txt"), sep = ',')
 
         T_A = Config.temperatures[exchanges['Src'][0]]
         T_B = Config.temperatures[exchanges['Dest'][0]]
         self.plot_work_distribution(exchanges['W_A'].to_numpy(), exchanges['W_B'].to_numpy(), T_A, T_B)
+
+        w_a = exchanges['W_A'].mean()
+        w_x = -np.log(np.exp(-exchanges['W_A']).mean())
+        data_object = {}
+        data_object['w_a'] = w_a
+        data_object['w_x'] = w_x
+        f_A = self.twod_free_energy(Config.num_particles, T_A)
+        f_B = self.twod_free_energy(Config.num_particles, T_B)
+        delta_f = f_B - f_A
+        data_object['free'] = delta_f
+
+
+
+        dict_df = pd.DataFrame({ key:pd.Series(value) for key, value in data_object.items() })
+        dict_df.to_csv(os.path.join(self.an.images_path, str(exchanges['Src'][0]), "run_summary.dat"), index = False, float_format = '%.3f', sep = '\t')
+        
+
+        
     
     
 

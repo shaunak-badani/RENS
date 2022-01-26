@@ -41,7 +41,6 @@ class FileOperations:
     def write_vectors(self, x, v, timestep):
         
         str_x = ' '.join(np.char.mod('%.3f', x.flatten()))
-        # print(str_x)
         self.pos_file.write("{:.3f} {}".format(timestep, str_x))
         self.pos_file.write("\n")
         
@@ -200,7 +199,6 @@ class FileOperationsRENS(FileOperationsREMD):
         comm = MPI.COMM_WORLD
         rank = comm.Get_rank()
         if rank == 0:
-
             self.exchanges_pandas.to_csv(self.remd_file, index = False)
         super().__del__()
         

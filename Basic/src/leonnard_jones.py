@@ -42,8 +42,17 @@ class LJ(System):
 
         a = x[:]
         b = x[:]
-        pairwise_dist = np.linalg.norm(a[:, None, :] - b[None, :, :], axis=-1)
-        dist_np = pairwise_dist[np.triu(pairwise_dist) != 0]
+        pairwise_dist = a[:, None, :] - b[None, :, :]
+        r_ij = pairwise_dist
+        
+        # PBC
+        # L = self.L
+        # r_ij = L / 2 * (pairwise_dist <= -L / 2) - L / 2 * (pairwise_dist >= L / 2) + pairwise_dist
+
+
+        x = np.linalg.norm(r_ij, axis=-1)
+
+        dist_np = x[np.triu(x) != 0]
         u = np.sum(4 * Units.epsilon * ((sigma / dist_np)**12 - (sigma / dist_np)**6))
         return u  # Joules
         
@@ -54,6 +63,11 @@ class LJ(System):
         r_ij = x[:, None, :] - x[None, :, :]
         q = r_ij != [0, 0, 0]
         r_ij = r_ij[q].reshape(N, N - 1, 3)
+
+        # PBC
+        # L = self.L
+        # r_ij = L / 2 * (r_ij <= -L / 2) - L / 2 * (r_ij >= L / 2) + r_ij
+
         dist = np.linalg.norm(r_ij, axis = -1)
         val_temp = 24 * Units.epsilon / (dist**2) * (2 * (sigma / dist)**12 - (sigma / dist)**6)
         val_temp = val_temp[:,:, np.newaxis]

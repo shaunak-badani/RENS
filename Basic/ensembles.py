@@ -82,6 +82,9 @@ class NVE_Ensemble:
     def run_simulation(self):
         for step_no in range(self.starting_step, self.num_steps):
             x, v = self.stepper.step(self.sys, step_no)
+            # if Config.system == 'LJ':
+            #     L = self.sys.L
+            #     x = L / 2 * (x <= -L / 2) - L / 2 * (x >= L / 2) + x
             self.sys.set_x(x)
             self.sys.set_v(v)
             if step_no % self.file_io.output_period != 0:
@@ -108,6 +111,9 @@ class MinimizerEnsemble(NVE_Ensemble):
         for step_no in range(self.starting_step, self.num_steps):
             x = self.minimizer.step(self.sys)
 
+            # if Config.system == 'LJ':
+            #     L = self.sys.L
+            #     x = L / 2 * (x <= -L / 2) - L / 2 * (x >= L / 2) + x
             self.sys.set_x(x)
             if step_no % self.file_io.output_period != 0:
                 continue
@@ -131,7 +137,7 @@ class NVT_Ensemble(NVE_Ensemble):
         super().__init__(*args)
         
         if Config.thermostat == 'nh':
-            self.nht = NoseHoover(self.stepper.dt)
+            self.thermostat = NoseHoover(self.stepper.dt)
         elif Config.thermostat == 'langevin':
             self.thermostat = LangevinThermostat(self.stepper.dt)
 
@@ -139,9 +145,13 @@ class NVT_Ensemble(NVE_Ensemble):
         for step_no in range(self.starting_step, self.num_steps):
             t = step_no * self.stepper.dt
             if Config.thermostat == 'nh':
-                v = self.nht.step(self.sys.m, self.sys.v)
+                v = self.thermostat.step(self.sys)
                 x, v = self.stepper.step(self.sys, step_no, v = v)
-                v = self.nht.step(self.sys.m, v)
+                v = self.thermostat.step(self.sys, v)
+
+                # if Config.system == 'LJ':
+                #     L = self.sys.L
+                #     x = L / 2 * (x <= -L / 2) - L / 2 * (x >= L / 2) + x
             else:
                 x, v = self.thermostat.step(self.sys.x, self.sys.v, self.sys.F, self.sys.m)
 
@@ -157,11 +167,11 @@ class NVT_Ensemble(NVE_Ensemble):
             self.file_io.write_scalars(ke, pe, temp, t)
 
             if Config.thermostat == 'nh':
-                univ_energy = self.nht.universe_energy(ke, pe)
+                univ_energy = self.thermostat.universe_energy(ke, pe)
                 self.file_io.write_hprime(univ_energy, t)
 
         if Config.thermostat == 'nh':
-            self.file_io.write_rst(self.sys.x, self.sys.v, self.sys.m, self.num_steps - 1, xi = self.nht.xi, vxi = self.nht.vxi)
+            self.file_io.write_rst(self.sys.x, self.sys.v, self.sys.m, self.num_steps - 1, xi = self.thermostat.xi, vxi = self.thermostat.vxi)
         else:
             self.file_io.write_rst(self.sys.x, self.sys.v, self.sys.m, self.num_steps - 1)
         del(self.file_io)

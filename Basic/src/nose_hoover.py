@@ -20,16 +20,18 @@ class NoseHoover():
 
         if Config.rst:
             df = pd.read_csv(Config.rst, sep = ' ')
-            self.xi = df['xi'].dropna().to_numpy()
-            self.vxi = df['vxi'].dropna().to_numpy()
+            if hasattr(df, 'xi'):
+                self.xi = df['xi'].dropna().to_numpy()
+            if hasattr(df, 'vxi'):
+                self.vxi = df['vxi'].dropna().to_numpy()
             self.M = self.xi.shape[0]
 
         ## NVT Harmonic parameters
-        self.w = np.array([1])
-        self.M = 4
-        self.Q = np.ones(self.M)
-        self.xi = np.zeros(self.M)
-        self.vxi = np.array([1, -1, 1, -1], dtype = 'float')
+        # self.w = np.array([1])
+        # self.M = 4
+        # self.Q = np.ones(self.M)
+        # self.xi = np.zeros(self.M)
+        # self.vxi = np.array([1, -1, 1, -1], dtype = 'float')
         ###
 
 
@@ -40,8 +42,9 @@ class NoseHoover():
         total_universe_energy += KE + PE
         return total_universe_energy
 
-    def step(self, m, v):
-        
+    def step(self, sys, v = None):
+        if v is None:
+            v = sys.v
         _, d = v.shape
         N_f = d * self.num_particles
         T = Config.T()
@@ -49,9 +52,10 @@ class NoseHoover():
         n_c = self.n_c
         n_ys = self.w.shape[0]
         SCALE = 1.0
-        KE2 = np.sum(m * v**2)
-              
         
+        
+        KE2 = 2 * sys.K(v)
+              
         
         for i in range(n_c):
             for w_j in self.w:
@@ -93,6 +97,6 @@ class NoseHoover():
                 G_M = (self.Q[M - 2] * self.vxi[M - 2]**2 - Units.kB * T) / self.Q[M - 1]
                 self.vxi[M - 1] += (delta / 4) * G_M
         
-        v_new = v*SCALE
+        v_new = sys.v * SCALE
         return v_new
         

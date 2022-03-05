@@ -7,7 +7,8 @@ class VelocityVerletIntegrator:
     def __init__(self):
         self.dt = 1e-3
 
-       
+        if hasattr(Config, 'dt'):
+            self.dt = Config.dt
 
     def step(self, sys, step, x = None, v = None, m = None):
         if x is None:
@@ -17,10 +18,21 @@ class VelocityVerletIntegrator:
         if m is None:
             m = sys.m
         F = sys.F(x)
+        # print(np.linalg.norm(F))
+        # print(v[0])
+        # print(self.dt / 2 * (F[0] / m[0]))
+        # print(v)
         v_new = v + (self.dt / 2) * (F / m)
+
         x_new = x + (self.dt) * v_new
+
         F = sys.F(x_new)
+        # print(np.linalg.norm(F))
+
         v_new = v_new + (self.dt / 2) * (F / m)
+        # print(np.linalg.norm(v_new - v))
+
+        # print(sys.instantaneous_T(v_new))
         return x_new, v_new
 
 

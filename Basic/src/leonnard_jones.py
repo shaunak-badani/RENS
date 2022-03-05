@@ -1,107 +1,76 @@
 from .units import Units
+from .config import Config
 
 import numpy as np
+import pandas as pd
 import random
 import math
 from .system import System
 
 class LJ(System):
 
-    def __init_velocities(self, cfg):
-        N = cfg.num_particles
-        T = cfg.temperature
+    def __init__(self):
+        Units.kB = 1.380649 * 1e-23
+        Units.epsilon = 120 * Units.kB
+        Config.dt = 1e-2 # picosecond
 
-        vel = np.random.uniform(-0.5, 0.5, N*3).reshape(N,3) 
-    
-        # define center of mass 
-        cm_x = np.sum(self.m * vel[:,0] / self.m) / N
-        cm_y = np.sum(self.m * vel[:,1] / self.m) / N
-        cm_z = np.sum(self.m * vel[:,2] / self.m) / N
-        
-        # initialize kinetic energy
-        ke = 0
-        
-        # elminate center of mass drift (make zero momentum)
-        for i in range(N):    
-            vel[i,0] -= cm_x
-            vel[i,1] -= cm_y
-            vel[i,2] -= cm_z
-        
-        # obtain kinetic energy from velocity
-        ke = 0.5 * np.square(self.m * vel).sum()
-        
-        # define 'scale velocity'
-        T_temp = ke*2 / (3*N)
-        scale = math.sqrt(T/T_temp)
-        vel = np.multiply(scale, vel)
-        # vel = np.loadtxt('../../Nose-Hoover-Chain/vel.txt')
+        self.N = 108
+        self.sigma = 3.4
+        self.L = 10.229 * self.sigma
+        self.x = np.random.uniform(0, self.L, size = (self.N, 3))
+        self.m = 39.95 * 1.6747 * 1e-27 * np.ones(shape = (self.N, 1)) # kg
+        self.__init_velocities()
 
-        self.T = T
-        self.N = N
-        self.v = vel
-        
+        if Config.rst:
+            df = pd.read_csv(Config.rst, sep = ' ')
+            self.x = df['x'].dropna().to_numpy().reshape(-1, 3)
+            N = self.x.shape[0]
+            self.v = df['v'].dropna().to_numpy().reshape(-1, 3)
+            self.m = df['m'].dropna().to_numpy().reshape(-1, 1)
+            self.N = N
+            Config.num_particles = N
 
-    def __init__(self, rc = 6):
-        super().__init__()
-        N = Config.num_particles
-        self.rc = 6
-        V = 1000
-        bx = by = bz = V**(1.0 / 3)
-        ix, iy, iz = [0, 0 ,0]
-        coord=np.zeros(shape=[N,3], dtype="float")
-        n_3=int(math.floor(N**(1/3) + 0.5))
-        # assign particle postions
-        for i in range(N):
-            coord[i,0]=float((ix+0.5)*bx/n_3)
-            coord[i,1]=float((iy+0.5)*by/n_3)
-            coord[i,2]=float((iz+0.5)*bz/n_3)
-            ix += 1
-            if ix == n_3:
-                ix = 0
-                iy += 1
-            if iy == n_3:
-                iy = 0
-                iz +=1
+    def __init_velocities(self):
+        T = Config.T()
+        v = np.random.random(size = (self.N, 3)) - 0.5
+        sumv2 = 2 * self.K(v)
+        fs = np.sqrt((self.N * 3 * Units.kB * T) / sumv2)
+        self.v = v * fs  # Angstrom / picosecond
 
-
-        self.x = coord
-        # self.x = np.loadtxt('../../Nose-Hoover-Chain/pos.txt')
-        cfg.num_particles = self.x.shape[0]
-        self.m = np.ones((N, 1), dtype="float")
-        self.__init_velocities(cfg)
-
-   
     def U(self, x):
-        sigma = 1
-        epsilon = 1
-        N = self.N
-        pe = 0
-        for i in range(N - 1):
-            for j in range(i + 1, N):
-                r = x[i] - x[j]
-                r_norm = np.linalg.norm(r)
-                if r_norm < self.rc:
-                    pe += 4 * epsilon * ((sigma / r_norm)**12 - (sigma / r_norm)**6)        
-        return pe
+        sigma = self.sigma
 
-                 
+        a = x[:]
+        b = x[:]
+        pairwise_dist = np.linalg.norm(a[:, None, :] - b[None, :, :], axis=-1)
+        dist_np = pairwise_dist[np.triu(pairwise_dist) != 0]
+        u = np.sum(4 * Units.epsilon * ((sigma / dist_np)**12 - (sigma / dist_np)**6))
+        return u  # Joules
+        
     def F(self, x):
-        sigma = 1
-        epsilon = 1
         N = self.N
-        f = np.zeros_like(x)
-        for i in range(N - 1):
-            for j in range(i + 1, N):
-                r = x[i] - x[j]
-                r_norm = np.linalg.norm(r)
-                F = 48 * epsilon * ((sigma/r_norm)**12 - 0.5 * (sigma/r_norm)**6) / r_norm**2
-                f[i] += F * r
-                f[j] -= F * r
-        return f
+        sigma = self.sigma
+
+        r_ij = x[:, None, :] - x[None, :, :]
+        q = r_ij != [0, 0, 0]
+        r_ij = r_ij[q].reshape(N, N - 1, 3)
+        dist = np.linalg.norm(r_ij, axis = -1)
+        val_temp = 24 * Units.epsilon / (dist**2) * (2 * (sigma / dist)**12 - (sigma / dist)**6)
+        val_temp = val_temp[:,:, np.newaxis]
+        F_i = np.sum(val_temp * (r_ij), axis = 1)
+        return F_i * 1e-4 # kg A / (ps)^2 
 
     def instantaneous_T(self, v):
         N = self.N
-        sumv2 = np.sum(self.m * v**2)
+        sumv2 = 2 * self.K(v)
         t = sumv2 / (3 * N * Units.kB)
-        # r_t = (Units.kB / Units.epsilon) * t
         return t
+
+    def K(self, v):
+        """
+        v -> A / ps
+        m -> kg
+        A / ps * 1e2 -> m / s
+        """
+        KE = 0.5 * np.sum(self.m * (v * 1e2)**2)
+        return KE

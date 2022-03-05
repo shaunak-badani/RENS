@@ -37,7 +37,6 @@ class Config:
             t = Config.temperatures[Config.replica_id]
         else:
             t = Config.temperature
-        t *= (Units.epsilon / Units.kB)
         return t
     
     

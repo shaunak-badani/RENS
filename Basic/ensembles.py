@@ -82,7 +82,6 @@ class NVE_Ensemble:
     def run_simulation(self):
         for step_no in range(self.starting_step, self.num_steps):
             x, v = self.stepper.step(self.sys, step_no)
-
             self.sys.set_x(x)
             self.sys.set_v(v)
             if step_no % self.file_io.output_period != 0:

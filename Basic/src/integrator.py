@@ -277,7 +277,7 @@ class RENSIntegrator(REMDIntegrator):
 
     def step(self, sys, timestep, file_io):
         x = sys.x
-        v = sys.v
+        v = sys.v.copy()
         F = sys.F
         m = sys.m
 
@@ -298,6 +298,7 @@ class RENSIntegrator(REMDIntegrator):
             if not exchange:
                 x_new, v_new = self.x0, self.v0
             else:
+                sys.set_v(v)
                 x_new, v_new = self.exchange_phase_space_vectors(sys)
             return x_new, v_new
     

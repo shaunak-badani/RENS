@@ -663,7 +663,7 @@ class RENS_Analysis(REMD_Analysis):
         Z_single_particle = dblquad(free, -np.inf, np.inf, lambda y:-np.inf, lambda y:np.inf)[0]
 
         f = -N * np.log(Z_single_particle)
-        f -= (N / 2) * np.log(2 * np.pi / beta)
+        f -= N * np.log(2 * np.pi / beta)
         return f
         
     def mullermod_analyze(self):

@@ -82,9 +82,9 @@ class NVE_Ensemble:
     def run_simulation(self):
         for step_no in range(self.starting_step, self.num_steps):
             x, v = self.stepper.step(self.sys, step_no)
-            # if Config.system == 'LJ':
-            #     L = self.sys.L
-            #     x = L / 2 * (x <= -L / 2) - L / 2 * (x >= L / 2) + x
+            if Config.system == 'LJ':
+                L = self.sys.L
+                x = L * (x <= 0) - L * (x >= L) + x
             self.sys.set_x(x)
             self.sys.set_v(v)
             if step_no % self.file_io.output_period != 0:
@@ -111,9 +111,9 @@ class MinimizerEnsemble(NVE_Ensemble):
         for step_no in range(self.starting_step, self.num_steps):
             x = self.minimizer.step(self.sys)
 
-            # if Config.system == 'LJ':
-            #     L = self.sys.L
-            #     x = L / 2 * (x <= -L / 2) - L / 2 * (x >= L / 2) + x
+            if Config.system == 'LJ':
+                L = self.sys.L
+                x = L * (x <= 0) - L * (x >= L) + x
             self.sys.set_x(x)
             if step_no % self.file_io.output_period != 0:
                 continue
@@ -149,9 +149,9 @@ class NVT_Ensemble(NVE_Ensemble):
                 x, v = self.stepper.step(self.sys, step_no, v = v)
                 v = self.thermostat.step(self.sys, v)
 
-                # if Config.system == 'LJ':
-                #     L = self.sys.L
-                #     x = L / 2 * (x <= -L / 2) - L / 2 * (x >= L / 2) + x
+                if Config.system == 'LJ':
+                    L = self.sys.L
+                    x = L * (x <= 0) - L * (x >= L) + x
             else:
                 x, v = self.thermostat.step(self.sys.x, self.sys.v, self.sys.F, self.sys.m)
 
@@ -254,14 +254,17 @@ class RENS_Ensemble(REMD_Ensemble):
             t = step_no * self.stepper.dt
             if self.rens_integrator.mode == 0:
                 if Config.thermostat == 'nh':
-                    v = self.nht.step(self.sys.m, self.sys.v)
+                    v = self.nht.step(self.sys)
                     x, v = self.stepper.step(self.sys, step_no, v = v)
-                    v = self.nht.step(self.sys.m, v)
+                    v = self.nht.step(self.sys)
                 else:
                     x, v = self.thermostat.step(self.sys.x, self.sys.v, self.sys.F, self.sys.m)
                 self.rens_integrator.attempt(self.sys, x, v)
             else:
                 x, v = self.rens_integrator.step(self.sys, t, self.file_io)
+            if Config.system == 'LJ':
+                L = self.sys.L
+                x = L * (x <= 0) - L * (x >= L) + x
 
             self.sys.set_x(x)
             self.sys.set_v(v)

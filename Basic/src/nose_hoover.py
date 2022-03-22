@@ -14,7 +14,9 @@ class NoseHoover():
         self.xi = np.zeros(M)
         self.dt = dt
         self.num_particles = Config.num_particles
-        self.Q = np.full(M, Units.kB * Config.T() / freq**2)
+        kBT = Units.kB * Config.T()
+
+        self.Q = np.full(M, kBT / freq**2)
         self.Q[0] *= Config.num_particles
         self.w = np.array([0.2967324292201065,  0.2967324292201065, -0.1869297168804260, 0.2967324292201065, 0.2967324292201065])
 
@@ -54,8 +56,7 @@ class NoseHoover():
         SCALE = 1.0
         
         
-        KE2 = 2 * sys.K(v)
-              
+        KE2 = 2 * sys.K(v)      
         
         for i in range(n_c):
             for w_j in self.w:

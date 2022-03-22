@@ -180,6 +180,11 @@ class RENSIntegrator(REMDIntegrator):
         
     def setup_rens(self, sys, x, v):
         self.T_A = Config.T()
+        H = sys.K(v) + sys.U(x)
+        kbt = Units.kB * self.T_A
+        # print("H : ", H)
+        # print("kbt : ", kbt)
+        # print("h / kBt : ", H / kbt)
         self.w = - (sys.K(v) + sys.U(x)) / (Units.kB * self.T_A)
 
         self.t = 0
@@ -269,8 +274,12 @@ class RENSIntegrator(REMDIntegrator):
     def andersen_update(self, sys, v, T_lamda):
         N, d = v.shape
         ind = np.random.randint(0, N)
-        beta = 1 / (Units.kB * T_lamda)
+        kBT = Units.kB * T_lamda
+        
+        beta = 1 / (kBT)
         sigma = 1 / np.sqrt(sys.m[ind] * beta)
+        if not Units.arbitrary:
+            sigma *= np.sqrt(Units.kJ_mol_TO_J / Units.AMU_TO_KG) * Units.M_S_TO_A_PS
         v_new = v.copy()
         v_new[ind] = np.random.normal(size = d, scale = sigma)
         return v_new
@@ -308,6 +317,8 @@ class RENSIntegrator(REMDIntegrator):
             v_new = self.andersen_update(sys, v, T_lamda)
             h_new = (sys.K(v_new) + sys.U(x)) / (Units.kB * T_lamda)
             h_old = (sys.K(v) + sys.U(x)) / (Units.kB * T_lamda)
+            # print(h_new, " h_new")
+            # print(h_old, " h_old")
             self.heat += h_new - h_old
             v = v_new
         else:

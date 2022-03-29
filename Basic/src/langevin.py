@@ -13,7 +13,11 @@ class LangevinThermostat:
         self.damping = np.exp(-self.friction * dt)
 
     def step(self, x, v, force, m):
-        sigma = np.sqrt(Units.kB * Config.T() / m * (1 - np.exp(-2 * self.friction * self.dt)))
+        kBT = Units.kB * Config.T()
+        if not Units.arbitrary:
+            kBT *= Units.kJ_mol_TO_J / (Units.AMU_TO_KG) * (Units.M_S_TO_A_PS)**2
+        kBT_m = kBT / m
+        sigma = np.sqrt(kBT_m * (1 - np.exp(-2 * self.friction * self.dt)))
         R = np.random.normal(size = v.shape)
         F = force(x)
 

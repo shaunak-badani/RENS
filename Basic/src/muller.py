@@ -36,7 +36,7 @@ class MullerSystem(System):
             self.x = df['x'].dropna().to_numpy().reshape(-1, 2)
             N = self.x.shape[0]
             self.v = df['v'].dropna().to_numpy().reshape(-1, 2)
-            self.m = df['m'].dropna().to_numpy().reshape(-1, 2)
+            self.m = df['m'].dropna().to_numpy().reshape(-1, 1)
             self.N = N
             Config.num_particles = N
 

@@ -95,6 +95,7 @@ class System:
 
     def K(self, v):
         KE = 0.5 * np.sum(self.m * v**2)
+        # print("KE : ", KE)
         # KE_in_KJmol = KE / 1e4
         # return KE_in_KJmol
         return KE

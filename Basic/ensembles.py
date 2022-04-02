@@ -1,4 +1,6 @@
 from src.system import System
+from src.test_sys import TestSystem
+
 from src.harmonic_oscillator import HarmonicOscillator
 from src.config import Config
 from src.file_operations import FileOperations
@@ -37,6 +39,8 @@ class Ensemble:
             self.file_io = FileOperations(first_time = first_time)
         
         sys = System()
+        if Config.system == 'test':
+            sys = TestSystem()
         if Config.system == 'free_particle':
             sys = FreeParticleSystem()
         elif Config.system == 'LJ':
@@ -91,8 +95,6 @@ class NVE_Ensemble:
                 continue
 
             pe = self.sys.U(x)
-            self.sys.set_x(x)
-            self.sys.set_v(v)
             ke = self.sys.K(v)
             temp = self.sys.instantaneous_T(v)
             self.file_io.write_vectors(x, v, step_no)
@@ -147,7 +149,7 @@ class NVT_Ensemble(NVE_Ensemble):
             if Config.thermostat == 'nh':
                 v = self.thermostat.step(self.sys)
                 x, v = self.stepper.step(self.sys, step_no, v = v)
-                v = self.thermostat.step(self.sys, v)
+                v = self.thermostat.step(self.sys, v = v)
 
                 if Config.system == 'LJ':
                     L = self.sys.L
@@ -161,7 +163,9 @@ class NVT_Ensemble(NVE_Ensemble):
                 continue
 
             pe = self.sys.U(x)
+            # print("v : ", v)
             ke = self.sys.K(v)
+            
             temp = self.sys.instantaneous_T(v)
             self.file_io.write_vectors(x, v, t)
             self.file_io.write_scalars(ke, pe, temp, t)

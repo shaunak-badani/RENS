@@ -1,0 +1,11 @@
+{
+    "num_particles" : 1,
+    "num_steps": 500,
+    "output_period" : 1,
+    "run_type": "nvt",
+    "temperature" : 1,
+    "thermostat" : "nh",
+    "files" : "./tests/NH_test",
+    "run_name" : "H_prime",
+    "system" : "test"
+}

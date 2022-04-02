@@ -150,7 +150,6 @@ class REMDIntegrator(VelocityVerletIntegrator):
                 arr = self.comm.recv(source = i, tag = 3)
                 file_io.write_exchanges(arr)
         return y_x, y_v
-
         
     
     def scale_velocity_factor(self, T_old, T_new):

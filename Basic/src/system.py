@@ -23,10 +23,10 @@ class System:
         fs = np.sqrt((N * Units.kB * T) / sumv2)
 
         # Sampling from maxwell boltzmann distribution
-        beta = 1 / (Config.T() * Units.kB)
-        sigma = 1 / np.sqrt(self.m * beta)
-        v = np.random.normal(size = (N, 1), scale = sigma)
-        fs = 1
+        # beta = 1 / (Config.T() * Units.kB)
+        # sigma = 1 / np.sqrt(self.m * beta)
+        # v = np.random.normal(size = (N, 1), scale = sigma)
+        # fs = 1
         self.v = v * fs 
 
     def __init_positions(self):
@@ -89,7 +89,7 @@ class System:
         u[ind] = 4 * (1 + np.sin(2*np.pi*x[ind]))
         
         ind = (x >= 1.75)
-        u[ind] = 8 * (x[ind] - 1.75)**2
+        u[ind] = 8 * (np.pi**2) * (x[ind] - 1.75)**2
         
         return u.sum()
 

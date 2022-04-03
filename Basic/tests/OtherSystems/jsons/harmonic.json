@@ -1,0 +1,8 @@
+{
+    "num_steps": 5000,
+    "run_type": "nve",
+    "system" : "Harmonic",
+    "rst" : "tests/OtherSystems/rsts/Harmonic.rst",
+    "files" : "tests/OtherSystems/runs",
+    "run_name" : "harmonic_nve"
+}

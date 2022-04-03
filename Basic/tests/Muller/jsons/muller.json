@@ -3,7 +3,7 @@
     "temperature": 2,
     "run_type": "nve",
     "system" : "Muller",
-    "rst" : "tests/Muller/rsts/Muller_NP1.rst",
+    "rst" : "tests/Muller/rsts/NP1.rst",
     "files" : "tests/Muller/runs",
     "run_name" : "muller_nve"
 }

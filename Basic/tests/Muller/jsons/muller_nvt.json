@@ -2,8 +2,10 @@
     "num_steps": 50000,
     "temperature": 2,
     "run_type": "nvt",
+    "output_period" : 100,
     "system" : "Muller",
-    "rst" : "tests/Muller/rsts/Muller_NP1.rst",
+    "thermostat" : "nh",
+    "rst" : "tests/Muller/rsts/NP1.rst",
     "files" : "tests/Muller/runs",
     "run_name" : "muller_nvt"
 }

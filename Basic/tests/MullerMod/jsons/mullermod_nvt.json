@@ -4,7 +4,7 @@
     "run_type": "nvt",
     "system" : "Muller",
     "thermostat" : "nh",
-    "rst" : "tests/Muller/rsts/Muller_NP10.rst",
-    "files" : "tests/Muller/runs",
-    "run_name" : "muller_nvt"
+    "rst" : "tests/MullerMod/rsts/NP1.rst",
+    "files" : "tests/MullerMod/runs",
+    "run_name" : "nvt"
 }

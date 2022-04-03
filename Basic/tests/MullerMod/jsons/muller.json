@@ -1,8 +1,0 @@
-{
-    "num_steps": 5000,
-    "run_type": "nve",
-    "system" : "Muller",
-    "rst" : "tests/Muller/rsts/Muller_NP10.rst",
-    "files" : "tests/Muller/runs",
-    "run_name" : "muller_nve"
-}

@@ -37,11 +37,12 @@ class Ensemble:
             self.file_io = FileOperationsRENS()
         else:
             self.file_io = FileOperations(first_time = first_time)
-        
-        sys = System()
+
+        if Config.system == '1D_Leach':
+            sys = System()
         if Config.system == 'test':
             sys = TestSystem()
-        if Config.system == 'free_particle':
+        if Config.system == 'FreeParticle':
             sys = FreeParticleSystem()
         elif Config.system == 'LJ':
             sys = LJ()
@@ -139,7 +140,7 @@ class NVT_Ensemble(NVE_Ensemble):
         super().__init__(*args)
         
         if Config.thermostat == 'nh':
-            self.thermostat = NoseHoover(self.stepper.dt)
+            self.thermostat = NoseHoover(self.stepper.dt, d = self.sys.v.shape[1])
         elif Config.thermostat == 'langevin':
             self.thermostat = LangevinThermostat(self.stepper.dt)
 
@@ -150,12 +151,12 @@ class NVT_Ensemble(NVE_Ensemble):
                 v = self.thermostat.step(self.sys)
                 x, v = self.stepper.step(self.sys, step_no, v = v)
                 v = self.thermostat.step(self.sys, v = v)
-
-                if Config.system == 'LJ':
-                    L = self.sys.L
-                    x = L * (x <= 0) - L * (x >= L) + x
             else:
                 x, v = self.thermostat.step(self.sys.x, self.sys.v, self.sys.F, self.sys.m)
+            
+            if Config.system == 'LJ':
+                L = self.sys.L
+                x = L * (x <= 0) - L * (x >= L) + x
 
             self.sys.set_x(x)
             self.sys.set_v(v)
@@ -163,7 +164,6 @@ class NVT_Ensemble(NVE_Ensemble):
                 continue
 
             pe = self.sys.U(x)
-            # print("v : ", v)
             ke = self.sys.K(v)
             
             temp = self.sys.instantaneous_T(v)
@@ -191,7 +191,7 @@ class REMD_Ensemble(NVT_Ensemble):
         self.remd_integrator = REMDIntegrator()
 
         if Config.thermostat == 'nh':
-            self.nht = NoseHoover(self.stepper.dt)
+            self.nht = NoseHoover(self.stepper.dt, d = self.sys.v.shape[1])
         else:
             self.thermostat = LangevinThermostat(self.stepper.dt)
 
@@ -212,6 +212,10 @@ class REMD_Ensemble(NVT_Ensemble):
                     v = self.nht.step(self.sys.m, v)
                 else:
                     x, v = self.thermostat.step(self.sys.x, self.sys.v, self.sys.F, self.sys.m)
+            
+            if Config.system == 'LJ':
+                L = self.sys.L
+                x = L * (x <= 0) - L * (x >= L) + x
 
             self.sys.set_x(x)
             self.sys.set_v(v)
@@ -266,6 +270,7 @@ class RENS_Ensemble(REMD_Ensemble):
                 self.rens_integrator.attempt(self.sys, x, v)
             else:
                 x, v = self.rens_integrator.step(self.sys, t, self.file_io)
+
             if Config.system == 'LJ':
                 L = self.sys.L
                 x = L * (x <= 0) - L * (x >= L) + x

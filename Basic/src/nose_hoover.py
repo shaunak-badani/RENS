@@ -7,9 +7,10 @@ from .config import Config
 
 class NoseHoover():
 
-    def __init__(self, dt, freq = 50, M = 2, n_c = 1):
+    def __init__(self, dt, freq = 50, M = 2, n_c = 1, d = 1):
         self.n_c = n_c
         self.M = M
+        self.N_f = Config.num_particles * d
         self.vxi = np.zeros(M)
         self.xi = np.zeros(M)
         self.dt = dt
@@ -17,7 +18,7 @@ class NoseHoover():
         kBT = Units.kB * Config.T()
 
         self.Q = np.full(M, kBT / freq**2)
-        self.Q[0] *= Config.num_particles
+        self.Q[0] *= self.N_f
         self.w = np.array([0.2967324292201065,  0.2967324292201065, -0.1869297168804260, 0.2967324292201065, 0.2967324292201065])
 
         if Config.rst:
@@ -29,7 +30,7 @@ class NoseHoover():
             self.M = self.xi.shape[0]
 
     def universe_energy(self, KE, PE):
-        total_universe_energy = (self.num_particles * self.xi[0] + self.xi[1:].sum()) * Units.kB * Config.T()
+        total_universe_energy = (self.N_f * self.xi[0] + self.xi[1:].sum()) * Units.kB * Config.T()
         total_universe_energy += 0.5 * np.sum(self.Q * self.vxi**2)
         total_universe_energy += KE + PE
         return total_universe_energy
@@ -38,7 +39,7 @@ class NoseHoover():
         if v is None:
             v = sys.v
         _, d = v.shape
-        N_f = d * self.num_particles
+        N_f = self.N_f
         T = Config.T()
         M = self.M
         n_c = self.n_c

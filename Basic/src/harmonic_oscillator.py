@@ -1,6 +1,7 @@
 from .units import Units
 
 import numpy as np
+import pandas as pd
 from .config import Config
 from .system import System
 
@@ -19,7 +20,7 @@ class HarmonicOscillator(System):
     def __init__(self, file_io = None):
         N = Config.num_particles
         self.x = np.random.normal(0, 5.0, size = (N, 1))
-        self.m = np.full((N, 1), 1) # kg / mol
+        self.m = np.full((N, 1), 1)
         self.omega = 1
         self.k = self.omega**2 * self.m
         self.__init_velocities()

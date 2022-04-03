@@ -15,24 +15,23 @@ class LJ(System):
         Units.epsilon = 120 * Units.kB # kJ / mol 
         Config.dt = 1e-2 # picosecond
 
-        self.N = 108
+        self.N = Config.num_particles
         self.sigma = 3.4 # angstrom
         self.L = 10.229 * self.sigma / 2
         self.x = np.random.uniform(0, self.L, size = (self.N, 3))
-        # self.m = 39.95 * 1.6747 * 1e-27 * np.ones(shape = (self.N, 1)) # kg
         self.m = 39.95 * np.ones(shape = (self.N, 1)) # amu
-        self.__init_velocities()
 
         if Config.rst:
             df = pd.read_csv(Config.rst, sep = ' ')
             self.x = df['x'].dropna().to_numpy().reshape(-1, 3)
             N = self.x.shape[0]
-            # if hasattr(self, 'v'):
-            #     self.v = df['v'].dropna().to_numpy().reshape(-1, 3)
 
             self.m = df['m'].dropna().to_numpy().reshape(-1, 1)
             self.N = N
             Config.num_particles = N
+
+        self.__init_velocities()
+        
 
     def __init_velocities(self):
         T = Config.T()

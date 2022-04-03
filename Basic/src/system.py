@@ -21,14 +21,33 @@ class System:
         v = np.random.random(size = (N, 1)) - 0.5
         sumv2 = np.sum(self.m * v**2)
         fs = np.sqrt((N * Units.kB * T) / sumv2)
+
+        # Sampling from maxwell boltzmann distribution
+        # beta = 1 / (Config.T() * Units.kB)
+        # sigma = 1 / np.sqrt(self.m * beta)
+        # v = np.random.normal(size = (N, 1), scale = sigma)
+        # fs = 1
         self.v = v * fs 
+
+    def __init_positions(self):
+        N = Config.num_particles
+        beta = 1 / (Units.kB * Config.T())
+        sigma_p = 1 / np.sqrt(beta)
+        linsp = np.linspace(-2, 2.25, 10000)
+        u = np.array([self.U(i) for i in linsp])
+        prob = np.exp(- beta * u)
+        prob /= prob.sum()
+
+        x = np.random.choice(linsp, size = (N, 1), p = prob)
+        self.x = x
         
 
     def __init__(self, file_io = None):
         N = Config.num_particles
-        self.x = np.random.normal(0, 1.0, size = (N, 1))
-        self.m = np.full((N, 1), 1) # kg / mol
+        self.m = np.full((N, 1), 1)
+        self.__init_positions()
         self.__init_velocities()
+
 
         if Config.rst:
             df = pd.read_csv(Config.rst, sep = ' ')
@@ -70,12 +89,13 @@ class System:
         u[ind] = 4 * (1 + np.sin(2*np.pi*x[ind]))
         
         ind = (x >= 1.75)
-        u[ind] = 64 * (x[ind] - 1.75)**2
+        u[ind] = 8 * (np.pi**2) * (x[ind] - 1.75)**2
         
         return u.sum()
 
     def K(self, v):
         KE = 0.5 * np.sum(self.m * v**2)
+        # print("KE : ", KE)
         # KE_in_KJmol = KE / 1e4
         # return KE_in_KJmol
         return KE

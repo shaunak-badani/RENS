@@ -1,7 +1,0 @@
-{
-    "num_particles": 10,
-    "num_steps": 10000,
-    "run_type": "nve",
-    "analyze" : true,
-    "system" : "LJ"
-}

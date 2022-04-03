@@ -29,13 +29,16 @@ class Config:
     primary_replica = 0
     replica_id = MPI.COMM_WORLD.Get_rank()
 
+    # FOR RENS
+    tau = 1.0
+
     def T():
         if len(Config.temperatures) > 0:
             t = Config.temperatures[Config.replica_id]
         else:
             t = Config.temperature
-        t *= (Units.epsilon / Units.kB)
         return t
+    
     
 
     @staticmethod
@@ -86,12 +89,14 @@ class Config:
 
             Config.run_name = os.path.splitext(file_name)[0]
 
+            if 'run_name' in data:
+                Config.run_name = data['run_name']
+
             if not Config.ada:
                 if 'files' in data:
                     Config.files = data['files']
                 else:
                     Config.files = "../../runs"
-
             
             if 'primary_replica' in data:
                 Config.primary_replica = data['primary_replica']
@@ -102,6 +107,8 @@ class Config:
             if 'restart' in data:
                 Config.restart = data['restart']
 
+            if 'tau' in data:
+                Config.tau = data['tau']
             if 'thermostat' in data:
                 Config.thermostat = data['thermostat']
 

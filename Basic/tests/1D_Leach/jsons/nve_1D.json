@@ -1,0 +1,9 @@
+{
+    "num_particles": 10,
+    "num_steps": 10000,
+    "run_type": "nve",
+    "rst" : "./tests/1D_Leach/rsts/1D_leach.rst",
+    "files" : "./tests/1D_Leach/leach_runs",
+    "run_name" : "nve_leach",
+    "system" : "1D_Leach"
+}

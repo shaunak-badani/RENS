@@ -1,0 +1,11 @@
+{
+    "num_steps": 100000,
+    "output_period" : 100,
+    "run_type": "nvt",
+    "temperature" : 2,
+    "thermostat" : "nh",
+    "files" : "./tests/NH_test",
+    "rst" : "./tests/1D_Leach/rsts/1D_leach.rst",
+    "run_name" : "nh_leach",
+    "system" : "1D_Leach"
+}

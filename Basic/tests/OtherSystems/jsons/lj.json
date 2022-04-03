@@ -1,0 +1,9 @@
+{
+    "num_particles" : 108,
+    "num_steps": 500,
+    "run_type": "nve",
+    "system" : "LJ",
+    "rst" : "tests/OtherSystems/rsts/LJ.rst",
+    "files" : "tests/OtherSystems/runs",
+    "run_name" : "lj_nve"
+}

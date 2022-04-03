@@ -121,14 +121,19 @@ The Muller Brown potential is a combination of multiple gaussians in the 2-D pla
 There are two valleys separated by an energy barrier, which again makes this system of great interest.
 
 
+## Tests : 
 
-<!-- ROADMAP -->
-## Roadmap
+* Running individual tests : 
+    ```
+    cd Basic
+    python -m unittest -v tests.test_nh
+    python -m unittest -v tests.test_leach
+    ```
 
-- [] Implement Analysis objects for 2-D brown muller potential
-- [] Benchmarking for RENS runs.
-
-
+* Running all tests : 
+    ```
+    python -m unittest discover -v
+    ```
 
 <!-- CONTRIBUTING -->
 ## Contributing

@@ -7,5 +7,9 @@
     "analyze" : true,
     "system" : "1D_Leach",
     "run_name" : "Shaunak",
+<<<<<<< HEAD
+    "tau" : 2.0
+=======
     "tau" : 0.0
+>>>>>>> master
 }

@@ -7,6 +7,7 @@ from src.analysis import Analysis
 from src.analysis import NVE_Analysis
 from src.analysis import NVT_Analysis
 from src.analysis import REMD_Analysis
+from src.analysis import RENS_Analysis
 
 
 from mpi4py import MPI
@@ -28,5 +29,8 @@ if Config.run_type == 'nvt':
 
 if Config.run_type == 'remd':
     analysis_object = REMD_Analysis()
+
+if Config.run_type == 'rens':
+    analysis_object = RENS_Analysis()
 
 analysis_object.analyze()

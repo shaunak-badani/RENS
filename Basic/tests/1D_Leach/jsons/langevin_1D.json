@@ -1,0 +1,11 @@
+{
+    "num_steps": 300000,
+    "output_period" : 100,
+    "run_type": "nvt",
+    "temperature" : 2.0,
+    "thermostat" : "langevin",
+    "rst" : "./tests/1D_Leach/rsts/1D_leach.rst",
+    "files" : "./tests/1D_Leach/leach_runs",
+    "run_name" : "langevin_leach",
+    "system" : "1D_Leach"
+}

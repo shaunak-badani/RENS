@@ -22,11 +22,13 @@ class MullerSystem(System):
 
     def __init__(self, file_io = None):
         N = Config.num_particles
-        a = np.random.uniform(-2, 0.5, size = (N, 1))
-        b = np.random.uniform(0, 2, size = (N, 1))
+
+        # Initializing in one of the basins
+        # To see if it samples the other
+        a = np.random.uniform(-0.525, -0.275, size = (N, 1))
+        b = np.random.uniform(1.5, 1.8, size = (N, 1))
         self.x = np.hstack((a, b))
-        # self.x = np.random.normal(0, 1.0, size = (N, 2))
-        self.m = np.full((N, 2), 1) # kg / mol
+        self.m = np.full((N, 1), 1) # kg / mol
         self.__init_velocities()
 
         if Config.rst:
@@ -34,7 +36,7 @@ class MullerSystem(System):
             self.x = df['x'].dropna().to_numpy().reshape(-1, 2)
             N = self.x.shape[0]
             self.v = df['v'].dropna().to_numpy().reshape(-1, 2)
-            self.m = df['m'].dropna().to_numpy().reshape(-1, 2)
+            self.m = df['m'].dropna().to_numpy().reshape(-1, 1)
             self.N = N
             Config.num_particles = N
 

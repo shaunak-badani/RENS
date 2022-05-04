@@ -1,0 +1,7 @@
+{
+    "num_particles" : 1,
+    "num_steps": 5000,
+    "temperature": 90,
+    "run_type" : "minimize",
+    "system" : "LEPS_II"
+}

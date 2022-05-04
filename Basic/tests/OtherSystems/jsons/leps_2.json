@@ -1,0 +1,9 @@
+{
+    "num_particles" : 1,
+    "num_steps": 500,
+    "run_type": "nve",
+    "temperature" : 2,
+    "system" : "LEPS_II",
+    "files" : "tests/OtherSystems/runs",
+    "run_name" : "leps_2"
+}

@@ -40,7 +40,7 @@ class LEPS_I(System):
 
         if Config.rst:
             df = pd.read_csv(Config.rst, sep = ' ')
-            self.x = df['x'].dropna().to_numpy().reshape(-1, 3)
+            self.x = df['x'].dropna().to_numpy().reshape(-1, 2)
             N = self.x.shape[0]
 
             self.m = df['m'].dropna().to_numpy().reshape(-1, 1)
@@ -145,7 +145,7 @@ class LEPS_II(LEPS_I):
 
         if Config.rst:
             df = pd.read_csv(Config.rst, sep = ' ')
-            self.x = df['x'].dropna().to_numpy().reshape(-1, 3)
+            self.x = df['x'].dropna().to_numpy().reshape(-1, 2)
             N = self.x.shape[0]
 
             self.m = df['m'].dropna().to_numpy().reshape(-1, 1)

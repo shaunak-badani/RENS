@@ -54,6 +54,14 @@ class TestOtherSystems(unittest.TestCase):
         scalars = pd.read_csv(os.path.join(file_loc, 'scalars.txt'), sep = ' ') 
         standard_deviation = np.std(scalars['TE'])
         self.assertTrue(standard_deviation < 1e-5)
+    
+    def test_leps_2_mod(self):
+        os.system('python3 main.py -c tests/OtherSystems/jsons/leps_2_mod.json')
+        file_loc = 'tests/OtherSystems/runs/leps_2_mod'
+
+        scalars = pd.read_csv(os.path.join(file_loc, 'scalars.txt'), sep = ' ') 
+        standard_deviation = np.std(scalars['TE'])
+        self.assertTrue(standard_deviation < 1e-3)
 
 
     @classmethod

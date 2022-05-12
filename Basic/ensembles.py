@@ -14,6 +14,7 @@ from src.muller import MullerSystem
 from src.muller_mod import MullerMod
 from src.leps import LEPS_I
 from src.leps import LEPS_II
+from src.leps import LEPS_II_Mod
 
 from src.leonnard_jones import LJ
 from src.nose_hoover import NoseHoover
@@ -58,6 +59,8 @@ class Ensemble:
             sys = LEPS_I()
         elif Config.system == 'LEPS_II':
             sys = LEPS_II()
+        elif Config.system == 'LEPS_II_Mod':
+            sys = LEPS_II_Mod()
 
 
         nsteps = Config.num_steps

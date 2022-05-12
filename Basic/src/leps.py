@@ -176,6 +176,10 @@ class LEPS_II(LEPS_I):
         return np.array([F_x, F_y]).T
 
 
+class LEPS_II_Mod(LEPS_II):
+    b = 0.03
+
+
 class Q:
     def __init__(self, d, alpha, r0):
         self.d = d

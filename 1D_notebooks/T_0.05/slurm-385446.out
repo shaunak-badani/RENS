@@ -1,16 +1,0 @@
-==========================================
-SLURM_JOB_ID = 385446
-SLURM_NODELIST = gnode20
-SLURM_JOB_GPUS = 0
-==========================================
-[NbConvertApp] Converting notebook NVE.ipynb to script
-[NbConvertApp] Writing 4288 bytes to NVE.py
-mv: cannot stat 'NVE.txt': No such file or directory
-Number of particles =  1
-Temperature =  0.05
-(1, 1) (1, 1)
-sending incremental file list
-positions.txt
-         32,768   0%    0.00kB/s    0:00:00      115,539,968  58%  110.16MB/s    0:00:00      197,534,777 100%  107.94MB/s    0:00:01 (xfr#1, to-chk=1/2)
-velocities.txt
-         32,768   0%   42.90kB/s    1:16:16        2,293,760   1%    2.14MB/s    0:01:28      118,358,016  60%   55.91MB/s    0:00:01      196,342,234 100%   69.04MB/s    0:00:02 (xfr#2, to-chk=0/2)

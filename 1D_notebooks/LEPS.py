@@ -156,7 +156,7 @@ class LEPS_II(LEPS_I):
 class LEPS_II_Mod(LEPS_II):
     b = 0.03
     
-def Z_LEPS(N, T):
+def Z_LEPS(T):
     from scipy.integrate import dblquad
     U = LEPS_II().V
     kB = 1
@@ -169,9 +169,9 @@ def Free_energy(N, T):
     
     kB = 1
     beta = 1 / (kB * T)
-    Z = Z_LEPS(N, T)
-    f = -beta * (N / 2) * np.log(Z)
+    Z = Z_LEPS(T)
+    f = - N * np.log(Z)
     m = 1
-    f -= beta * N * np.log(4 * np.pi * beta / m)
+    f -= N * np.log(2 * np.pi / beta)
     return f
     
